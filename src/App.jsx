@@ -1297,29 +1297,39 @@ export default function StampApp() {
   };
 
   const showToast = (msg, dur=2400) => { setToast(msg); setTimeout(()=>setToast(null), dur); };
-  const requestLocation = () => {
+  const fetchCurrentLocation = useCallback(({ silent = false } = {}) => {
     if (!navigator.geolocation) {
       setLocationStatus('unsupported');
-      showToast('Location is unavailable on this device.');
-      return;
+      if (!silent) showToast('Location is unavailable on this device.');
+      return Promise.resolve(null);
     }
+
     setLocationStatus('locating');
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        setCurrentLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        });
-        setLocationStatus('ready');
-        setMapFocusSignal(signal=>signal + 1);
-      },
-      () => {
-        setLocationStatus('denied');
-        showToast('Enable location for Stampz in iPhone Settings.');
-      },
-      { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
-    );
+    return new Promise(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const nextLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          };
+          setCurrentLocation(nextLocation);
+          setLocationStatus('ready');
+          setMapFocusSignal(signal=>signal + 1);
+          resolve(nextLocation);
+        },
+        () => {
+          setLocationStatus('denied');
+          if (!silent) showToast('Enable location for Stampz in iPhone Settings.');
+          resolve(null);
+        },
+        { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+      );
+    });
+  }, []);
+
+  const requestLocation = () => {
+    fetchCurrentLocation();
   };
 
   const handleImage = e => {
@@ -1334,10 +1344,36 @@ export default function StampApp() {
     e.target.value = '';
   };
 
-  const handleCameraCapture = url => {
-    setDraft(d=>({...d, image:url, imageRaw:null}));
+  const handleCameraCapture = async url => {
+    const existingLocation = currentLocation;
+
+    setDraft(d=>({
+      ...d,
+      image:url,
+      imageRaw:null,
+      locationLat: existingLocation?.lat ?? d?.locationLat ?? null,
+      locationLng: existingLocation?.lng ?? d?.locationLng ?? null,
+      locationLabel: existingLocation
+        ? `${existingLocation.lat.toFixed(2)}, ${existingLocation.lng.toFixed(2)}`
+        : d?.locationLabel || 'Unplaced',
+    }));
     setShowCamera(false);
     setStep('customize');
+
+    if (existingLocation || locationStatus === 'unsupported') return;
+
+    const nextLocation = await fetchCurrentLocation({ silent:true });
+    if (!nextLocation) return;
+
+    setDraft(d => {
+      if (!d || d.image !== url) return d;
+      return {
+        ...d,
+        locationLat: nextLocation.lat,
+        locationLng: nextLocation.lng,
+        locationLabel: `${nextLocation.lat.toFixed(2)}, ${nextLocation.lng.toFixed(2)}`,
+      };
+    });
   };
 
   const handleCameraCancel = () => {
