@@ -1,9 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import L from "leaflet";
-import { MapContainer, Marker, TileLayer, ZoomControl, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 
-const STAMP_COLORS = ['#FFFDF8','#FFE8F3','#E9E6FF','#DFFAF4','#FFF0D2','#F7BFD7','#FFFFFF','#111827'];
+const STAMP_COLORS = ['#FFFDF8','#FDE2E4','#DDEAFB','#E9E6FF','#DFF4EE','#FFF0D2','#F7D7E8','#F8ECE6'];
 const CURRENT_YEAR = 2026;
 const PERFORATION_STYLES = [
   { id:'rare', label:'Rare', icon:'✪', holeScale:1.18, spacingScale:0.92, shadow:0.3 },
@@ -132,6 +129,31 @@ const STAMP_SIZES = {
   lg:{ w:218, h:272, frame:20, hole:7.5, sp:14.5 },
 };
 
+const TILE_SIZE = 256;
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function latLngToWorld(lat, lng, zoom) {
+  const scale = TILE_SIZE * Math.pow(2, zoom);
+  const safeLat = clamp(lat, -85.05112878, 85.05112878);
+  const x = ((lng + 180) / 360) * scale;
+  const latRad = (safeLat * Math.PI) / 180;
+  const y = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale;
+  return { x, y };
+}
+
+function normalizeTileX(x, zoom) {
+  const tilesPerAxis = Math.pow(2, zoom);
+  return ((x % tilesPerAxis) + tilesPerAxis) % tilesPerAxis;
+}
+
+function clampTileY(y, zoom) {
+  const max = Math.pow(2, zoom) - 1;
+  return clamp(y, 0, max);
+}
+
 function ScallopEdges({ inset, marginX, marginY, radius, step, color='white' }) {
   const diameter = radius * 2;
   return (
@@ -184,12 +206,12 @@ function ScallopEdges({ inset, marginX, marginY, radius, step, color='white' }) 
 function StampView({ item, size='md', onClick, showMeta=false }) {
   const { w, h } = STAMP_SIZES[size];
   const specimenCode = (item.label || item.note || '824-A').toUpperCase().slice(0, 18);
-  const stampBg = item.stampColor || '#FFD8D8';
-  const stampSurface = item.stampColor || '#FFD3D3';
+  const stampBg = item.stampColor || '#FFFDF8';
+  const stampSurface = item.stampColor || '#FFF4F4';
   const outerRadius = Math.max(12, w * 0.08);
-  const framePad = Math.max(8, w * 0.06);
+  const framePad = Math.max(8, w * 0.05);
   const innerRadius = Math.max(8, w * 0.045);
-  const artMargin = Math.max(12, w * 0.07);
+  const artMargin = Math.max(9, w * 0.055);
   const perfDot = Math.max(5, w * 0.036);
   const perfStep = perfDot * 2.2;
   const labelFont = Math.max(7, w * 0.05);
@@ -200,17 +222,17 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
         onMouseLeave={e=>{ e.currentTarget.style.transform=''; }}
         onClick={onClick}>
         <div style={{ width:w, height:h, position:'relative', overflow:'hidden', background:stampBg, borderRadius:outerRadius, padding:framePad }}>
-          <div style={{ position:'absolute', inset:framePad, borderRadius:innerRadius, background:stampSurface, boxShadow:'inset 0 1px 0 rgba(255,255,255,0.58)' }}/>
+          <div style={{ position:'absolute', inset:framePad, borderRadius:innerRadius, background:stampSurface, boxShadow:'inset 0 1px 0 rgba(255,255,255,0.72)' }}/>
           <ScallopEdges inset={framePad} marginX={artMargin * 0.72} marginY={artMargin * 0.72} radius={perfDot} step={perfStep}/>
-          <div style={{ position:'relative', margin:artMargin, borderRadius:innerRadius * 0.72, background:'#FFF8F8', overflow:'hidden', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.42)' }}>
+          <div style={{ position:'relative', margin:artMargin, borderRadius:innerRadius * 0.72, background:stampSurface, overflow:'hidden', boxShadow:'0 0 0 1px rgba(207, 192, 192, 0.4), inset 0 0 0 1px rgba(255,255,255,0.42)' }}>
             {item.image
-              ? <img src={item.image} alt={item.label} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:'#FFF8F8' }}/>
-              : <div style={{ width:'100%', aspectRatio:'1 / 1.18', background:'#FFF8F8', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              ? <img src={item.image} alt={item.label} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:stampSurface }}/>
+              : <div style={{ width:'100%', aspectRatio:'1 / 1.18', background:stampSurface, display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <span style={{ color:'#8C6E6E', fontSize:Math.max(10, w * 0.1), fontStyle:'italic', textAlign:'center', padding:6, fontFamily:'"Playfair Display",Georgia,serif', lineHeight:1.3 }}>{item.label || 'Specimen'}</span>
                 </div>
             }
             <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.18)', pointerEvents:'none', zIndex:1 }}/>
-            <div style={{ position:'absolute', left:Math.max(10, w * 0.07), bottom:Math.max(10, w * 0.07), padding:`${Math.max(6, w * 0.03)}px ${Math.max(10, w * 0.05)}px`, background:'rgba(0,0,0,0.48)', color:'rgba(255,255,255,0.94)', fontSize:labelFont, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', zIndex:2 }}>
+            <div style={{ position:'absolute', left:Math.max(10, w * 0.07), bottom:Math.max(10, w * 0.07), padding:`${Math.max(6, w * 0.03)}px ${Math.max(10, w * 0.05)}px`, background:'rgba(255,249,247,0.78)', backdropFilter:'blur(6px)', color:'#4A322D', fontSize:labelFont, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', zIndex:2, border:'1px solid rgba(255,255,255,0.72)', borderRadius:999 }}>
               {`Specimen No. ${specimenCode}`}
             </div>
           </div>
@@ -224,22 +246,22 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
 
 function EditorStampPreview({ item, onClick }) {
   const specimenCode = (item.label || item.note || '824-A').toUpperCase().slice(0, 18);
-  const stampBg = item.stampColor || '#FFD8D8';
-  const stampSurface = item.stampColor || '#FFD3D3';
+  const stampBg = item.stampColor || '#FFFDF8';
+  const stampSurface = item.stampColor || '#FFF4F4';
   const preview = (
     <div style={{ width:'100%', maxWidth:560, background:stampBg, borderRadius:22, padding:'16px 16px 18px', boxShadow:'0 22px 42px rgba(215,163,163,0.22)' }}>
-      <div style={{ background:stampSurface, borderRadius:18, padding:'12px 12px 14px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.58)' }}>
+      <div style={{ background:stampSurface, borderRadius:18, padding:'10px 10px 12px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.66)' }}>
         <div style={{ position:'relative', background:stampSurface, borderRadius:10, padding:12, overflow:'hidden' }}>
           <ScallopEdges inset={0} marginX={14} marginY={14} radius={10} step={34}/>
-          <div style={{ position:'relative', margin:18, border:'2px solid rgba(255,255,255,0.92)', background:'#FFF8F8', boxShadow:'0 0 0 1px rgba(255,255,255,0.12)' }}>
+          <div style={{ position:'relative', margin:14, border:'2px solid rgba(255,255,255,0.92)', background:stampSurface, boxShadow:'0 0 0 1px rgba(207, 192, 192, 0.32)' }}>
             {item.image
-              ? <img src={item.image} alt={item.label || 'Specimen preview'} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:'#FFF8F8' }}/>
-              : <div style={{ width:'100%', aspectRatio:'1 / 1.18', display:'grid', placeItems:'center', background:'#FFF8F8' }}>
+              ? <img src={item.image} alt={item.label || 'Specimen preview'} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:stampSurface }}/>
+              : <div style={{ width:'100%', aspectRatio:'1 / 1.18', display:'grid', placeItems:'center', background:stampSurface }}>
                   <span style={{ color:'#8C6E6E', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, fontStyle:'italic' }}>{item.label || 'Specimen'}</span>
                 </div>
             }
             <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.12)', pointerEvents:'none' }}/>
-            <div style={{ position:'absolute', left:14, bottom:14, padding:'8px 12px', background:'rgba(0,0,0,0.48)', color:'rgba(255,255,255,0.92)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap' }}>
+            <div style={{ position:'absolute', left:14, bottom:14, padding:'8px 12px', background:'rgba(255,249,247,0.8)', backdropFilter:'blur(6px)', color:'#4A322D', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', border:'1px solid rgba(255,255,255,0.72)', borderRadius:999 }}>
               {`Specimen No. ${specimenCode}`}
             </div>
           </div>
@@ -261,38 +283,106 @@ function EditorStampPreview({ item, onClick }) {
 }
 
 function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onRequestLocation, focusSignal }) {
-  const mapApiRef = useRef(null);
+  const mapFrameRef = useRef(null);
   const placedItems = items.filter(item=>Number.isFinite(item.locationLat) && Number.isFinite(item.locationLng));
   const initialCenter = currentLocation
     ? [currentLocation.lat, currentLocation.lng]
     : [20, 0];
-  const initialZoom = currentLocation ? 3.2 : 1.6;
+  const initialZoom = currentLocation ? 3 : 2;
   const [mapView, setMapView] = useState({
     centerLat: initialCenter[0],
     centerLng: initialCenter[1],
     zoom: initialZoom,
   });
+  const [viewport, setViewport] = useState({ width: 430, height: 520 });
+
+  useEffect(() => {
+    if (!mapFrameRef.current || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(entries => {
+      const rect = entries[0]?.contentRect;
+      if (!rect) return;
+      setViewport({
+        width: rect.width || 430,
+        height: rect.height || 520,
+      });
+    });
+    observer.observe(mapFrameRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!currentLocation || focusSignal == null) return;
+    const frame = window.requestAnimationFrame(() => {
+      setMapView(view => ({
+        ...view,
+        centerLat: currentLocation.lat,
+        centerLng: currentLocation.lng,
+        zoom: Math.max(view.zoom, 3),
+      }));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentLocation, focusSignal]);
 
   const projectPoint = useCallback((lat, lng, width, height) => {
-    const zoomScale = 256 * Math.pow(2, mapView.zoom);
-    const centerX = ((mapView.centerLng + 180) / 360) * zoomScale;
-    const centerLatRad = (mapView.centerLat * Math.PI) / 180;
-    const centerY = ((1 - Math.log(Math.tan(centerLatRad) + 1 / Math.cos(centerLatRad)) / Math.PI) / 2) * zoomScale;
-    const x = ((lng + 180) / 360) * zoomScale;
-    const latRad = (lat * Math.PI) / 180;
-    const y = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * zoomScale;
+    const center = latLngToWorld(mapView.centerLat, mapView.centerLng, mapView.zoom);
+    const point = latLngToWorld(lat, lng, mapView.zoom);
     return {
-      x: width / 2 + (x - centerX),
-      y: height / 2 + (y - centerY),
+      x: width / 2 + (point.x - center.x),
+      y: height / 2 + (point.y - center.y),
     };
   }, [mapView.centerLat, mapView.centerLng, mapView.zoom]);
 
+  const centerWorld = latLngToWorld(mapView.centerLat, mapView.centerLng, mapView.zoom);
+  const viewLeft = centerWorld.x - viewport.width / 2;
+  const viewTop = centerWorld.y - viewport.height / 2;
+  const startTileX = Math.floor(viewLeft / TILE_SIZE);
+  const endTileX = Math.floor((viewLeft + viewport.width) / TILE_SIZE);
+  const startTileY = Math.floor(viewTop / TILE_SIZE);
+  const endTileY = Math.floor((viewTop + viewport.height) / TILE_SIZE);
+  const tiles = [];
+
+  for (let tileY = startTileY; tileY <= endTileY; tileY += 1) {
+    const safeTileY = clampTileY(tileY, mapView.zoom);
+    for (let tileX = startTileX; tileX <= endTileX; tileX += 1) {
+      const safeTileX = normalizeTileX(tileX, mapView.zoom);
+      tiles.push({
+        key: `${mapView.zoom}-${tileX}-${tileY}`,
+        src: `https://tile.openstreetmap.org/${mapView.zoom}/${safeTileX}/${safeTileY}.png`,
+        left: tileX * TILE_SIZE - viewLeft,
+        top: tileY * TILE_SIZE - viewTop,
+      });
+    }
+  }
+
   return (
-    <div style={{ position:'relative', borderRadius:28, overflow:'hidden', background:'#d0cccc', border:'1px solid rgba(173, 168, 169, 0.42)', boxShadow:'0 18px 42px rgba(95, 109, 136, 0.12)', minHeight:520 }}>
-      <div style={{ position:'absolute', inset:0, background:'radial-gradient(circle, rgba(182,69,18,0.24) 1px, transparent 1.35px) 0 0 / 22px 22px', opacity:0.16, pointerEvents:'none', zIndex:2 }}/>
+    <div ref={mapFrameRef} style={{ position:'relative', borderRadius:28, overflow:'hidden', background:'#d4d4d6', border:'1px solid rgba(173, 168, 169, 0.42)', boxShadow:'0 18px 42px rgba(95, 109, 136, 0.12)', minHeight:520 }}>
+      <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg, rgba(255,255,255,0.34), rgba(120,126,141,0.08))', pointerEvents:'none', zIndex:1 }}/>
+      <div style={{ position:'absolute', inset:0, background:'radial-gradient(circle, rgba(182,69,18,0.16) 1px, transparent 1.25px) 0 0 / 22px 22px', opacity:0.18, pointerEvents:'none', zIndex:2 }}/>
+      <div style={{ position:'absolute', inset:0, zIndex:0, overflow:'hidden', pointerEvents:'none', transform:'scale(1.02)' }}>
+        {tiles.map(tile=>(
+          <img
+            key={tile.key}
+            src={tile.src}
+            alt=""
+            draggable="false"
+            style={{
+              position:'absolute',
+              left:tile.left,
+              top:tile.top,
+              width:TILE_SIZE,
+              height:TILE_SIZE,
+              objectFit:'cover',
+              filter:'saturate(0.9) contrast(1.03) brightness(1.02)',
+              userSelect:'none',
+              pointerEvents:'none',
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ position:'absolute', inset:0, background:'linear-gradient(160deg, rgba(255,255,255,0.18), transparent 32%, rgba(62,73,96,0.12))', pointerEvents:'none', zIndex:1 }}/>
       <div style={{ position:'absolute', inset:0, zIndex:3, pointerEvents:'none' }}>
         {placedItems.map(item=>{
-          const point = projectPoint(item.locationLat, item.locationLng, 430, 520);
+          const point = projectPoint(item.locationLat, item.locationLng, viewport.width, viewport.height);
           const isSelected = item.id===selectedItemId;
           return (
             <button
@@ -310,69 +400,20 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
           );
         })}
         {currentLocation && (() => {
-          const point = projectPoint(currentLocation.lat, currentLocation.lng, 430, 520);
+          const point = projectPoint(currentLocation.lat, currentLocation.lng, viewport.width, viewport.height);
           return <div style={{ position:'absolute', left:point.x - 9, top:point.y - 9, width:18, height:18, borderRadius:'50%', background:'#2555FF', boxShadow:'0 0 0 7px rgba(37,85,255,0.18)', pointerEvents:'none' }}/>;
         })()}
       </div>
       <div style={{ position:'absolute', right:16, bottom:16, zIndex:4, display:'grid', gap:8 }}>
-        <button type="button" onClick={()=>{ mapApiRef.current?.zoomIn(); }} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#f7d5d9', color:'#5a291f', cursor:'pointer', fontSize:28, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.12)' }}>+</button>
-        <button type="button" onClick={()=>{ mapApiRef.current?.zoomOut(); }} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#f7d5d9', color:'#5a291f', cursor:'pointer', fontSize:28, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.12)' }}>−</button>
-        <button type="button" onClick={()=>{ if (currentLocation) { mapApiRef.current?.flyTo([currentLocation.lat, currentLocation.lng], Math.max(mapView.zoom, 3.2), { duration:1.2 }); return; } onRequestLocation?.(); }} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#b64512', color:'white', cursor:'pointer', fontSize:22, boxShadow:'0 12px 24px rgba(182,69,18,0.22)' }}>◎</button>
+        <button type="button" onClick={()=>setMapView(view=>({ ...view, zoom: clamp(view.zoom + 1, 1, 6) }))} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#f7d5d9', color:'#5a291f', cursor:'pointer', fontSize:28, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.12)' }}>+</button>
+        <button type="button" onClick={()=>setMapView(view=>({ ...view, zoom: clamp(view.zoom - 1, 1, 6) }))} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#f7d5d9', color:'#5a291f', cursor:'pointer', fontSize:28, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.12)' }}>−</button>
+        <button type="button" onClick={()=>{ if (currentLocation) { setMapView(view=>({ ...view, centerLat: currentLocation.lat, centerLng: currentLocation.lng, zoom: Math.max(view.zoom, 3) })); return; } onRequestLocation?.(); }} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#b64512', color:'white', cursor:'pointer', fontSize:22, boxShadow:'0 12px 24px rgba(182,69,18,0.22)' }}>◎</button>
       </div>
-      <MapContainer
-        center={initialCenter}
-        zoom={initialZoom}
-        zoomControl={false}
-        scrollWheelZoom={false}
-        dragging={false}
-        touchZoom={false}
-        doubleClickZoom={false}
-        boxZoom={false}
-        keyboard={false}
-        style={{ width:'100%', height:520, pointerEvents:'none' }}
-        attributionControl={false}
-      >
-        <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapEffects currentLocation={currentLocation} focusSignal={focusSignal} mapApiRef={mapApiRef} onViewChange={setMapView} />
-      </MapContainer>
+      <div style={{ position:'absolute', left:14, bottom:12, zIndex:2, color:'rgba(61,53,56,0.68)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', pointerEvents:'none' }}>
+        © OpenStreetMap
+      </div>
     </div>
   );
-}
-
-function MapEffects({ currentLocation, focusSignal, mapApiRef, onViewChange }) {
-  const map = useMap();
-
-  useEffect(() => {
-    mapApiRef.current = map;
-    const syncView = () => {
-      const center = map.getCenter();
-      onViewChange({
-        centerLat: center.lat,
-        centerLng: center.lng,
-        zoom: map.getZoom(),
-      });
-    };
-    syncView();
-    map.on('zoomend', syncView);
-    map.on('moveend', syncView);
-    return () => {
-      map.off('zoomend', syncView);
-      map.off('moveend', syncView);
-      if (mapApiRef.current === map) mapApiRef.current = null;
-    };
-  }, [map, mapApiRef, onViewChange]);
-
-  useEffect(() => {
-    if (!currentLocation || focusSignal == null) return;
-    map.flyTo([currentLocation.lat, currentLocation.lng], Math.max(map.getZoom(), 3.2), {
-      duration: 1.2,
-    });
-  }, [currentLocation, focusSignal, map]);
-
-  return null;
 }
 
 /* ── PostcardView ── */
@@ -1359,7 +1400,7 @@ export default function StampApp() {
                   </div>
 
                   <div style={{ display:'grid', gap:10 }}>
-                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Stamp Color</label>
+                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Background Color</label>
                     <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
                       {STAMP_COLORS.map(c=>(
                         <button

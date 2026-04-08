@@ -334,63 +334,6 @@ button {
   line-height: 1;
 }
 
-.leaflet-container {
-  font-family: "Libre Baskerville", Georgia, serif;
-  background: #d0cccc;
-  touch-action: pan-y !important;
-  pointer-events: none !important;
-}
-
-.leaflet-pane,
-.leaflet-top,
-.leaflet-bottom,
-.leaflet-control-container {
-  pointer-events: none;
-}
-
-.leaflet-tile-pane,
-.leaflet-map-pane,
-.leaflet-overlay-pane,
-.leaflet-shadow-pane {
-  pointer-events: none !important;
-}
-
-.leaflet-marker-pane,
-.leaflet-marker-pane *,
-.leaflet-control-zoom,
-.leaflet-control-zoom *,
-.stampz-map-locate,
-.stampz-map-locate * {
-  pointer-events: auto;
-}
-
-.leaflet-control-zoom {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.leaflet-control-zoom a {
-  width: 52px !important;
-  height: 52px !important;
-  line-height: 52px !important;
-  border: none !important;
-  border-radius: 16px !important;
-  background: #f7d5d9 !important;
-  color: #5a291f !important;
-  box-shadow: 0 10px 24px rgba(95, 109, 136, 0.12) !important;
-  font-size: 28px !important;
-  margin-bottom: 8px;
-}
-
-.leaflet-bottom.leaflet-right {
-  bottom: 16px;
-  right: 16px;
-}
-
-.leaflet-control-attribution {
-  display: none;
-}
-
 .stampz-map-pin,
 .stampz-map-user {
   background: transparent;
