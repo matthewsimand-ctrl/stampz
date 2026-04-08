@@ -1,15 +1,25 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
+  --text: #6f6670;
+  --text-h: #261814;
+  --bg: #f8f3f0;
+  --bg-soft: #fffaf7;
+  --surface: rgba(255, 251, 248, 0.96);
+  --surface-strong: #ffffff;
+  --surface-tint: #f7e8e6;
+  --border: rgba(160, 144, 150, 0.18);
+  --border-strong: rgba(110, 86, 91, 0.12);
   --code-bg: #f4f3ec;
-  --accent: #7da9d9;
-  --accent-bg: rgba(125, 169, 217, 0.14);
-  --accent-border: rgba(125, 169, 217, 0.46);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --accent: #8cb6df;
+  --accent-strong: #5a8fc6;
+  --accent-red: #bc4e2d;
+  --accent-red-soft: #f3c9bf;
+  --accent-bg: rgba(140, 182, 223, 0.14);
+  --accent-border: rgba(140, 182, 223, 0.46);
+  --social-bg: rgba(255, 248, 244, 0.72);
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(58, 44, 44, 0.12) 0 16px 40px -18px, rgba(58, 44, 44, 0.08) 0 10px 18px -12px;
+  --shadow-soft: 0 10px 30px rgba(103, 84, 84, 0.08);
+  --shadow-strong: 0 20px 44px rgba(92, 73, 73, 0.14);
 
   --sans: "Libre Baskerville", Georgia, serif;
   --heading: "Playfair Display", Georgia, serif;
@@ -59,7 +69,7 @@ body {
 body {
   margin: 0;
   min-height: 100svh;
-  background: #f7f3f2;
+  background: var(--bg);
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -102,8 +112,10 @@ button {
 
 .app-shell {
   min-height: 100svh;
-  background: #f7f3f2;
-  color: #5d6f8d;
+  background:
+    radial-gradient(circle at top left, rgba(140, 182, 223, 0.14), transparent 28rem),
+    linear-gradient(180deg, #fcf8f5 0%, #f7f1ee 100%);
+  color: var(--text);
   font-family: var(--sans);
   position: relative;
   overflow-x: hidden;
@@ -113,7 +125,7 @@ button {
 }
 
 .app-header {
-  background: #a9c7e5;
+  background: rgba(153, 190, 226, 0.94);
   color: white;
   padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
   display: grid;
@@ -123,7 +135,9 @@ button {
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 26px rgba(90, 120, 153, 0.14);
+  backdrop-filter: blur(12px);
 }
 
 .app-brand-title {
@@ -131,12 +145,13 @@ button {
   margin: 0;
   padding: 0;
   color: white;
-  font-size: 24px;
+  font-size: 30px;
   font-family: "Playfair Display", Georgia, serif;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   line-height: 1;
   text-align: center;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .header-create-button {
@@ -150,10 +165,10 @@ button {
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.22);
   color: white;
   cursor: pointer;
-  box-shadow: none;
+  box-shadow: 0 10px 20px rgba(74, 96, 127, 0.16);
 }
 
 .header-create-button span {
@@ -179,7 +194,7 @@ button {
   min-width: 0;
   font-family: var(--sans);
   font-size: 10px;
-  color: #fff4f3;
+  color: rgba(255, 255, 255, 0.82);
   text-align: left;
 }
 
@@ -221,7 +236,7 @@ button {
   margin: 0;
   padding: 10px max(16px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-right));
-  border-top: 1px solid rgba(212, 204, 206, 0.9);
+  border-top: 1px solid var(--border);
   box-shadow: 0 -10px 24px rgba(95, 109, 136, 0.08);
 }
 
@@ -236,7 +251,7 @@ button {
   border: 0;
   border-radius: 16px;
   background: transparent;
-  color: #8d7f84;
+  color: #7d6d72;
   cursor: pointer;
   font-family: var(--sans);
   font-size: 10px;
@@ -251,10 +266,9 @@ button {
 }
 
 .app-nav button.is-active {
-  background: #dbe9f6;
-  color: white;
+  background: rgba(140, 182, 223, 0.18);
   color: #315476;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(140, 182, 223, 0.22);
 }
 
 .app-nav button:active {
@@ -274,7 +288,7 @@ button {
   top: 18px;
   left: 50%;
   transform: translateX(-50%);
-  background: #7da9d9;
+  background: var(--accent-strong);
   color: white;
   padding: 10px 18px;
   border-radius: 999px;
@@ -382,11 +396,11 @@ button {
   place-items: center;
   padding: 18px;
   background:
-    linear-gradient(140deg, rgba(108, 99, 255, 0.92), rgba(255, 122, 168, 0.42)),
-    radial-gradient(circle at 85% 10%, rgba(255, 209, 102, 0.72), transparent 26rem),
-    #fff6d8;
-  color: white;
-  font-family: "Libre Baskerville", Georgia, serif;
+    radial-gradient(circle at top left, rgba(140, 182, 223, 0.2), transparent 24rem),
+    radial-gradient(circle at 90% 10%, rgba(188, 78, 45, 0.12), transparent 22rem),
+    linear-gradient(180deg, #fdf9f6 0%, #f7efeb 100%);
+  color: var(--text-h);
+  font-family: var(--sans);
 }
 
 .auth-hero {
@@ -401,10 +415,39 @@ button {
   padding: 10px 2px;
 }
 
+.auth-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8cb6df, #c9dff2);
+  font-size: 18px;
+}
+
+.auth-brand-name {
+  color: var(--accent-red);
+  font-family: var(--heading);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
 .eyebrow,
 .auth-panel__label {
   margin: 0 0 10px;
-  color: #f3cbd2;
+  color: #ab7b72;
   font-size: 11px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -412,19 +455,124 @@ button {
 
 .auth-copy h1 {
   margin: 0 0 18px;
-  max-width: 9ch;
-  color: white;
+  max-width: 10ch;
+  color: var(--text-h);
   font-family: "Playfair Display", Georgia, serif;
   font-size: clamp(42px, 12vw, 92px);
-  line-height: 0.9;
+  line-height: 0.92;
   letter-spacing: -0.06em;
 }
 
 .auth-copy p:not(.eyebrow) {
   max-width: 34rem;
-  color: rgba(255, 255, 255, 0.78);
+  color: #7f6661;
   font-size: 15px;
   line-height: 1.7;
+}
+
+.auth-feature-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.auth-feature-row span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: #7f6661;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-stage {
+  display: grid;
+  align-items: end;
+}
+
+.auth-stage__frame {
+  position: relative;
+  padding: 28px;
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,247,244,0.92));
+  border: 1px solid rgba(255,255,255,0.72);
+  box-shadow: var(--shadow-strong);
+  overflow: hidden;
+}
+
+.auth-stage__frame::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border-radius: 24px;
+  border: 1px dashed rgba(140, 182, 223, 0.34);
+  pointer-events: none;
+}
+
+.auth-stage__note {
+  position: absolute;
+  z-index: 1;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--accent-red);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-stage__note--top {
+  top: 16px;
+  left: 18px;
+}
+
+.auth-stage__stamp {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 340px;
+}
+
+.auth-stage__meta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-stage__label {
+  margin: 0 0 4px;
+  color: #ab7b72;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.auth-stage__meta strong {
+  color: var(--text-h);
+  font-size: 14px;
+  font-family: var(--heading);
+}
+
+.auth-stage__chip {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(140, 182, 223, 0.16);
+  color: #315476;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .auth-panel {
@@ -432,16 +580,16 @@ button {
   display: grid;
   gap: 16px;
   padding: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 26px;
-  background: rgba(255, 253, 248, 0.94);
-  color: #6c63ff;
-  box-shadow: 0 28px 70px rgba(108, 99, 255, 0.24);
+  background: rgba(255, 253, 248, 0.96);
+  color: var(--accent-strong);
+  box-shadow: var(--shadow-strong);
 }
 
 .auth-panel h2 {
   margin: 0;
-  color: #6c63ff;
+  color: var(--text-h);
   font-family: "Playfair Display", Georgia, serif;
   font-size: 30px;
 }
@@ -449,7 +597,7 @@ button {
 .auth-panel label {
   display: grid;
   gap: 7px;
-  color: #6f614e;
+  color: #8f6a62;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -458,10 +606,10 @@ button {
 .auth-panel input {
   width: 100%;
   min-height: 48px;
-  border: 1.5px solid #f4d7e6;
+  border: 1.5px solid rgba(140, 182, 223, 0.24);
   border-radius: 14px;
-  background: white;
-  color: #6c63ff;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--text-h);
   padding: 0 14px;
   font-size: 15px;
   letter-spacing: normal;
@@ -470,26 +618,27 @@ button {
 }
 
 .auth-panel input:focus {
-  border-color: #ff7aa8;
-  box-shadow: 0 0 0 4px rgba(255, 122, 168, 0.16);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(140, 182, 223, 0.14);
 }
 
 .auth-panel button {
   border: 0;
   border-radius: 999px;
-  background: #ff7aa8;
+  background: var(--accent-red);
   color: white;
   cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.08em;
   padding: 14px 18px;
+  box-shadow: 0 14px 30px rgba(188, 78, 45, 0.18);
 }
 
 .auth-panel .auth-link {
   min-height: 0;
   padding: 0;
   background: transparent;
-  color: #6c63ff;
+  color: var(--accent-strong);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: normal;
@@ -498,7 +647,7 @@ button {
 }
 
 .auth-footnote {
-  color: #9B7BAE;
+  color: #9a8079;
   font-size: 11px;
   line-height: 1.6;
 }

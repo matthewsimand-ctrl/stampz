@@ -2,11 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 const STAMP_COLORS = ['#FFFDF8','#FDE2E4','#DDEAFB','#E9E6FF','#DFF4EE','#FFF0D2','#F7D7E8','#F8ECE6'];
 const CURRENT_YEAR = 2026;
-const PERFORATION_STYLES = [
-  { id:'rare', label:'Rare', icon:'✪', holeScale:1.18, spacingScale:0.92, shadow:0.3 },
-  { id:'classic', label:'Classic', icon:'◈', holeScale:1, spacingScale:1, shadow:0.22 },
-  { id:'standard', label:'Standard', icon:'▦', holeScale:0.84, spacingScale:1.12, shadow:0.16 },
-];
 const COLLECTIONS = ['Destinations','Nature','Architecture','Food & Culture','Wildlife','People & Culture','Abstract'];
 const PROFILE_STORAGE_KEY = 'stampz.profile';
 const COLLECTION_STORAGE_PREFIX = 'stampz.collection';
@@ -41,6 +36,17 @@ const COMMUNITY_PROFILES = {
   northern_phil: { name:'Nora Ellis', location:'Yellowknife, Canada', bio:'Aurora collections and cold-weather commemoratives.', color:'#7BDCB5' },
   aegean_stamps: { name:'Nikos Vale', location:'Santorini, Greece', bio:'Island palettes, sea blues, and travel keepsakes.', color:'#0055aa' },
   accra_philately: { name:'Ama Mensah', location:'Accra, Ghana', bio:'Textiles, culture, and bold commemorative releases.', color:'#006b3f' },
+};
+
+const AUTH_HERO_STAMP = {
+  type:'stamp',
+  country:'CANADA',
+  label:'North Shore Morning',
+  note:'Sea glass skies and a quiet harbor.',
+  stampColor:'#DDEAFB',
+  agingIntensity:18,
+  createdAt:new Date(`${CURRENT_YEAR}-01-01`).toISOString(),
+  image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
 };
 
 let _n = 0;
@@ -168,14 +174,14 @@ function clampTileY(y, zoom) {
 function getAgingStyle(intensity = 36) {
   const age = clamp(intensity, 0, 100) / 100;
   return {
-    imageFilter: `sepia(${(age * 0.28).toFixed(2)}) saturate(${(1 - age * 0.16).toFixed(2)}) contrast(${(1 - age * 0.06).toFixed(2)}) brightness(${(1 - age * 0.03).toFixed(2)})`,
+    imageFilter: `sepia(${(age * 0.42).toFixed(2)}) saturate(${(1 - age * 0.28).toFixed(2)}) contrast(${(1 - age * 0.12).toFixed(2)}) brightness(${(1 - age * 0.09).toFixed(2)})`,
     paperOverlay: {
-      background: `linear-gradient(180deg, rgba(196, 164, 118, ${(age * 0.08).toFixed(3)}), rgba(120, 92, 62, ${(age * 0.03).toFixed(3)}))`,
+      background: `linear-gradient(180deg, rgba(196, 164, 118, ${(age * 0.14).toFixed(3)}), rgba(120, 92, 62, ${(age * 0.08).toFixed(3)}))`,
       mixBlendMode: 'multiply',
       opacity: 1,
     },
-    grainOpacity: 0.04 + age * 0.12,
-    borderColor: `rgba(181, 157, 141, ${(0.35 + age * 0.28).toFixed(3)})`,
+    grainOpacity: 0.06 + age * 0.18,
+    borderColor: `rgba(181, 157, 141, ${(0.45 + age * 0.34).toFixed(3)})`,
   };
 }
 
@@ -252,6 +258,7 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
         <div style={{ width:w, height:h, position:'relative', overflow:'visible' }}>
           <div style={{ position:'absolute', inset:0, background:edgeStroke, borderRadius:outerRadius, WebkitMaskImage:maskImage, maskImage:maskImage, WebkitMaskSize:'100% 100%', maskSize:'100% 100%', WebkitMaskRepeat:'no-repeat', maskRepeat:'no-repeat', filter:'drop-shadow(0 1px 0 rgba(255,255,255,0.55)) drop-shadow(0 8px 16px rgba(70,52,52,0.12))' }}/>
           <div style={{ position:'absolute', inset:1.5, background:stampBg, borderRadius:Math.max(outerRadius - 1, 0), WebkitMaskImage:maskImage, maskImage:maskImage, WebkitMaskSize:'100% 100%', maskSize:'100% 100%', WebkitMaskRepeat:'no-repeat', maskRepeat:'no-repeat' }}/>
+          <div style={{ position:'absolute', inset:Math.max(6, w * 0.034), background:'rgba(255,255,255,0.42)', borderRadius:Math.max(outerRadius - 5, 0), WebkitMaskImage:maskImage, maskImage:maskImage, WebkitMaskSize:'100% 100%', maskSize:'100% 100%', WebkitMaskRepeat:'no-repeat', maskRepeat:'no-repeat', opacity:0.72 }}/>
           <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, top:photoInsetTop, height:imageHeight, background:stampPaper, overflow:'hidden', boxShadow:`0 0 0 1px ${aging.borderColor}, inset 0 0 0 1px rgba(255,255,255,0.56)` }}>
             {item.image
               ? <img src={item.image} alt={item.label} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:stampPaper, filter:aging.imageFilter }}/>
@@ -1086,11 +1093,36 @@ function SignInScreen({ onSignIn }) {
       <section className="auth-hero" aria-labelledby="signin-title">
         <div className="auth-copy">
           <p className="eyebrow">Stampz Account</p>
+          <div className="auth-brand-lockup">
+            <span className="auth-brand-mark">✉️</span>
+            <span className="auth-brand-name">Stampz</span>
+          </div>
           <h1 id="signin-title">Keep your collection safe between visits.</h1>
           <p>
             Sign in before you create, save, and browse so your stamps and postcards stay tied
             to your account on this device.
           </p>
+          <div className="auth-feature-row" aria-hidden="true">
+            <span>Map every memory</span>
+            <span>Save your collection</span>
+            <span>Travel-ready archive</span>
+          </div>
+        </div>
+
+        <div className="auth-stage">
+          <div className="auth-stage__frame">
+            <div className="auth-stage__note auth-stage__note--top">Atlas Edition</div>
+            <div className="auth-stage__stamp">
+              <StampView item={AUTH_HERO_STAMP} size="lg" />
+            </div>
+            <div className="auth-stage__meta">
+              <div>
+                <p className="auth-stage__label">Personal archive</p>
+                <strong>Capture once, keep it pinned.</strong>
+              </div>
+              <span className="auth-stage__chip">Map-first</span>
+            </div>
+          </div>
         </div>
 
         <form className="auth-panel" onSubmit={handleSubmit}>
@@ -1345,7 +1377,7 @@ export default function StampApp() {
   const openCreateModal = () => {
     setShowCreateModal(true);
     setEditingItemId(null);
-    setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', perforationStyle:'classic', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
+    setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
     setStep('customize');
     setShowCamera(true);
   };
@@ -1360,7 +1392,7 @@ export default function StampApp() {
 
   const initDraft = type => {
     setEditingItemId(null);
-    setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', perforationStyle:'classic', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
+    setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
     setShowCreateModal(true);
     setStep('upload');
   };
@@ -1374,7 +1406,6 @@ export default function StampApp() {
       country: item.country || '',
       label: item.label || '',
       stampColor: item.stampColor || '#FFFDF8',
-      perforationStyle: item.perforationStyle || 'classic',
       agingIntensity: item.agingIntensity ?? 36,
       collection: item.collection || 'Destinations',
     });
@@ -1548,6 +1579,30 @@ export default function StampApp() {
 
                   <EditorStampPreview item={draft} onClick={()=>setLightbox(draft)}/>
 
+                  <div style={{ display:'grid', gap:12 }}>
+                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Background Color</label>
+                    <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                      {STAMP_COLORS.map(c=>(
+                        <button
+                          key={c}
+                          type="button"
+                          aria-label={`Use ${c} stamp color`}
+                          aria-pressed={(draft.stampColor || '#FFFDF8') === c}
+                          onClick={()=>setDraft(d=>({...d, stampColor:c, backgroundColor:c }))}
+                          style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.stampColor || '#FFFDF8') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.stampColor || '#FFFDF8') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:18, padding:'18px 18px 22px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)', display:'grid', gap:12 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Aging Intensity</label>
+                      <span style={{ color:'#B33A0B', fontSize:16, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>{draft.agingIntensity ?? 36}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" step="1" value={draft.agingIntensity ?? 36} onChange={e=>setDraft(d=>({...d, agingIntensity:Number(e.target.value)}))} style={{ width:'100%', accentColor:'#B33A0B' }}/>
+                  </div>
+
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:14 }}>
                     <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
                       <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Stamp Name</label>
@@ -1566,45 +1621,6 @@ export default function StampApp() {
                   <div style={{ background:'linear-gradient(180deg,#FFD0D0,#FFC8C8)', borderRadius:18, padding:'18px 18px 16px', boxShadow:'0 14px 30px rgba(215,163,163,0.18)' }}>
                     <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:12, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Curator&apos;s Note</label>
                     <textarea value={draft.note || ''} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} placeholder="Describe the atmosphere of the collection..." style={{ width:'100%', minHeight:92, border:'none', borderBottom:'1px solid rgba(154,109,104,0.25)', background:'transparent', resize:'vertical', fontSize:16, lineHeight:1.55, color:'#5A626E', fontFamily:'"Playfair Display",Georgia,serif', fontStyle:'italic', outline:'none' }}/>
-                  </div>
-
-                  <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                    <h3 style={{ margin:0, fontSize:16, color:'#35150E', fontFamily:'"Playfair Display",Georgia,serif' }}>✦ Perforation Style</h3>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:12 }}>
-                      {PERFORATION_STYLES.map(option=>{
-                        const active = (draft.perforationStyle || 'classic') === option.id;
-                        return (
-                          <button key={option.id} type="button" onClick={()=>setDraft(d=>({...d, perforationStyle:option.id}))} style={{ minHeight:112, border:active?'2px solid #B33A0B':'1px solid rgba(179,58,11,0.08)', borderRadius:16, background:active?'#B33A0B':'rgba(255,240,240,0.8)', color:active?'white':'#8F645E', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, boxShadow:active?'0 12px 24px rgba(179,58,11,0.18)':'none' }}>
-                            <span style={{ fontSize:24 }}>{option.icon}</span>
-                            <span style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>{option.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:18, padding:'18px 18px 22px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)', display:'grid', gap:12 }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
-                      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Aging Intensity</label>
-                      <span style={{ color:'#B33A0B', fontSize:16, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>{draft.agingIntensity || 36}%</span>
-                    </div>
-                    <input type="range" min="0" max="100" step="1" value={draft.agingIntensity ?? 36} onChange={e=>setDraft(d=>({...d, agingIntensity:Number(e.target.value)}))} style={{ width:'100%', accentColor:'#B33A0B' }}/>
-                  </div>
-
-                  <div style={{ display:'grid', gap:10 }}>
-                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Background Color</label>
-                    <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-                      {STAMP_COLORS.map(c=>(
-                        <button
-                          key={c}
-                          type="button"
-                          aria-label={`Use ${c} stamp color`}
-                          aria-pressed={(draft.stampColor||draft.backgroundColor||'#FFFDF8')===c}
-                          onClick={()=>setDraft(d=>({...d,stampColor:c}))}
-                          style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.stampColor||draft.backgroundColor||'#FFFDF8')===c?'#FFFFFF':'transparent'}`, boxShadow:(draft.stampColor||draft.backgroundColor||'#FFFDF8')===c?`0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)`:'0 4px 10px rgba(108,99,255,0.08)', cursor:'pointer', padding:0 }}
-                        />
-                      ))}
-                    </div>
                   </div>
 
                   <div>
