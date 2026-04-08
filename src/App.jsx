@@ -144,6 +144,17 @@ function latLngToWorld(lat, lng, zoom) {
   return { x, y };
 }
 
+function worldToLatLng(x, y, zoom) {
+  const scale = TILE_SIZE * Math.pow(2, zoom);
+  const lng = (x / scale) * 360 - 180;
+  const n = Math.PI - (2 * Math.PI * y) / scale;
+  const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  return {
+    lat: clamp(lat, -85.05112878, 85.05112878),
+    lng,
+  };
+}
+
 function normalizeTileX(x, zoom) {
   const tilesPerAxis = Math.pow(2, zoom);
   return ((x % tilesPerAxis) + tilesPerAxis) % tilesPerAxis;
@@ -152,6 +163,20 @@ function normalizeTileX(x, zoom) {
 function clampTileY(y, zoom) {
   const max = Math.pow(2, zoom) - 1;
   return clamp(y, 0, max);
+}
+
+function getAgingStyle(intensity = 36) {
+  const age = clamp(intensity, 0, 100) / 100;
+  return {
+    imageFilter: `sepia(${(age * 0.28).toFixed(2)}) saturate(${(1 - age * 0.16).toFixed(2)}) contrast(${(1 - age * 0.06).toFixed(2)}) brightness(${(1 - age * 0.03).toFixed(2)})`,
+    paperOverlay: {
+      background: `linear-gradient(180deg, rgba(196, 164, 118, ${(age * 0.08).toFixed(3)}), rgba(120, 92, 62, ${(age * 0.03).toFixed(3)}))`,
+      mixBlendMode: 'multiply',
+      opacity: 1,
+    },
+    grainOpacity: 0.04 + age * 0.12,
+    borderColor: `rgba(181, 157, 141, ${(0.35 + age * 0.28).toFixed(3)})`,
+  };
 }
 
 function ScallopEdges({ inset, marginX, marginY, radius, step, color='white' }) {
@@ -205,15 +230,18 @@ function ScallopEdges({ inset, marginX, marginY, radius, step, color='white' }) 
 /* ── StampView ── */
 function StampView({ item, size='md', onClick, showMeta=false }) {
   const { w, h } = STAMP_SIZES[size];
-  const specimenCode = (item.label || item.note || '824-A').toUpperCase().slice(0, 18);
-  const stampBg = item.stampColor || '#FFFDF8';
-  const stampSurface = item.stampColor || '#FFF4F4';
+  const stampCode = (item.label || item.note || '824-A').toUpperCase().slice(0, 18);
+  const stampBg = item.stampColor || '#F6DDE2';
+  const stampPaper = '#FFFDFC';
+  const edgeStroke = 'rgba(188, 172, 172, 0.82)';
+  const aging = getAgingStyle(item.agingIntensity ?? 36);
   const outerRadius = Math.max(12, w * 0.08);
-  const framePad = Math.max(8, w * 0.05);
-  const innerRadius = Math.max(8, w * 0.045);
-  const artMargin = Math.max(9, w * 0.055);
-  const perfDot = Math.max(5, w * 0.036);
-  const perfStep = perfDot * 2.2;
+  const maskImage = buildStampMask(w, h, Math.max(4.2, w * 0.032), Math.max(8.8, w * 0.064));
+  const photoInsetX = Math.max(10, w * 0.068);
+  const photoInsetTop = Math.max(10, w * 0.068);
+  const photoInsetBottom = Math.max(20, h * 0.12);
+  const imageHeight = h - photoInsetTop - photoInsetBottom;
+  const countryFont = Math.max(8, w * 0.06);
   const labelFont = Math.max(7, w * 0.05);
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
@@ -221,20 +249,35 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
         onMouseEnter={e=>{ if(onClick) e.currentTarget.style.transform='scale(1.05) rotate(-1.5deg)'; }}
         onMouseLeave={e=>{ e.currentTarget.style.transform=''; }}
         onClick={onClick}>
-        <div style={{ width:w, height:h, position:'relative', overflow:'hidden', background:stampBg, borderRadius:outerRadius, padding:framePad }}>
-          <div style={{ position:'absolute', inset:framePad, borderRadius:innerRadius, background:stampSurface, boxShadow:'inset 0 1px 0 rgba(255,255,255,0.72)' }}/>
-          <ScallopEdges inset={framePad} marginX={artMargin * 0.72} marginY={artMargin * 0.72} radius={perfDot} step={perfStep}/>
-          <div style={{ position:'relative', margin:artMargin, borderRadius:innerRadius * 0.72, background:stampSurface, overflow:'hidden', boxShadow:'0 0 0 1px rgba(207, 192, 192, 0.4), inset 0 0 0 1px rgba(255,255,255,0.42)' }}>
+        <div style={{ width:w, height:h, position:'relative', overflow:'visible' }}>
+          <div style={{ position:'absolute', inset:0, background:edgeStroke, borderRadius:outerRadius, WebkitMaskImage:maskImage, maskImage:maskImage, WebkitMaskSize:'100% 100%', maskSize:'100% 100%', WebkitMaskRepeat:'no-repeat', maskRepeat:'no-repeat', filter:'drop-shadow(0 1px 0 rgba(255,255,255,0.55)) drop-shadow(0 8px 16px rgba(70,52,52,0.12))' }}/>
+          <div style={{ position:'absolute', inset:1.5, background:stampBg, borderRadius:Math.max(outerRadius - 1, 0), WebkitMaskImage:maskImage, maskImage:maskImage, WebkitMaskSize:'100% 100%', maskSize:'100% 100%', WebkitMaskRepeat:'no-repeat', maskRepeat:'no-repeat' }}/>
+          <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, top:photoInsetTop, height:imageHeight, background:stampPaper, overflow:'hidden', boxShadow:`0 0 0 1px ${aging.borderColor}, inset 0 0 0 1px rgba(255,255,255,0.56)` }}>
             {item.image
-              ? <img src={item.image} alt={item.label} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:stampSurface }}/>
-              : <div style={{ width:'100%', aspectRatio:'1 / 1.18', background:stampSurface, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ color:'#8C6E6E', fontSize:Math.max(10, w * 0.1), fontStyle:'italic', textAlign:'center', padding:6, fontFamily:'"Playfair Display",Georgia,serif', lineHeight:1.3 }}>{item.label || 'Specimen'}</span>
+              ? <img src={item.image} alt={item.label} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:stampPaper, filter:aging.imageFilter }}/>
+              : <div style={{ width:'100%', height:'100%', background:stampPaper, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ color:'#8C6E6E', fontSize:Math.max(10, w * 0.1), fontStyle:'italic', textAlign:'center', padding:6, fontFamily:'"Playfair Display",Georgia,serif', lineHeight:1.3 }}>{item.label || 'Stamp'}</span>
                 </div>
             }
+            <div style={{ position:'absolute', inset:0, ...aging.paperOverlay, pointerEvents:'none', zIndex:1 }}/>
+            <div style={{ position:'absolute', inset:0, backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`, opacity:aging.grainOpacity, mixBlendMode:'multiply', pointerEvents:'none', zIndex:1 }}/>
             <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.18)', pointerEvents:'none', zIndex:1 }}/>
-            <div style={{ position:'absolute', left:Math.max(10, w * 0.07), bottom:Math.max(10, w * 0.07), padding:`${Math.max(6, w * 0.03)}px ${Math.max(10, w * 0.05)}px`, background:'rgba(255,249,247,0.78)', backdropFilter:'blur(6px)', color:'#4A322D', fontSize:labelFont, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', zIndex:2, border:'1px solid rgba(255,255,255,0.72)', borderRadius:999 }}>
-              {`Specimen No. ${specimenCode}`}
+            <div style={{ position:'absolute', top:10, right:8, color:'#4A322D', fontSize:countryFont, letterSpacing:'0.22em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', writingMode:'vertical-rl', textOrientation:'mixed', zIndex:2, textShadow:'0 1px 0 rgba(255,255,255,0.58)' }}>
+              {item.country || 'STAMPZ'}
             </div>
+          </div>
+          <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, bottom:Math.max(8, h * 0.045), display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:8, zIndex:2 }}>
+              <div style={{ minWidth:0 }}>
+                <div style={{ color:'#4A322D', fontSize:labelFont, letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', textShadow:'0 1px 0 rgba(255,255,255,0.6)' }}>
+                  {item.label || 'Untitled Stamp'}
+                </div>
+                <div style={{ color:'rgba(74,50,45,0.76)', fontSize:Math.max(6, w * 0.038), letterSpacing:'0.1em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', marginTop:2 }}>
+                  {item.createdAt ? new Date(item.createdAt).getFullYear() : CURRENT_YEAR}
+                </div>
+              </div>
+              <div style={{ padding:`${Math.max(6, w * 0.03)}px ${Math.max(10, w * 0.05)}px`, background:'rgba(255,249,247,0.78)', backdropFilter:'blur(6px)', color:'#4A322D', fontSize:labelFont, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', border:'1px solid rgba(255,255,255,0.72)', borderRadius:999 }}>
+                {`Stamp No. ${stampCode}`}
+              </div>
           </div>
         </div>
       </div>
@@ -245,28 +288,9 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
 }
 
 function EditorStampPreview({ item, onClick }) {
-  const specimenCode = (item.label || item.note || '824-A').toUpperCase().slice(0, 18);
-  const stampBg = item.stampColor || '#FFFDF8';
-  const stampSurface = item.stampColor || '#FFF4F4';
   const preview = (
-    <div style={{ width:'100%', maxWidth:560, background:stampBg, borderRadius:22, padding:'16px 16px 18px', boxShadow:'0 22px 42px rgba(215,163,163,0.22)' }}>
-      <div style={{ background:stampSurface, borderRadius:18, padding:'10px 10px 12px', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.66)' }}>
-        <div style={{ position:'relative', background:stampSurface, borderRadius:10, padding:12, overflow:'hidden' }}>
-          <ScallopEdges inset={0} marginX={14} marginY={14} radius={10} step={34}/>
-          <div style={{ position:'relative', margin:14, border:'2px solid rgba(255,255,255,0.92)', background:stampSurface, boxShadow:'0 0 0 1px rgba(207, 192, 192, 0.32)' }}>
-            {item.image
-              ? <img src={item.image} alt={item.label || 'Specimen preview'} style={{ width:'100%', aspectRatio:'1 / 1.18', objectFit:'cover', objectPosition:'center center', display:'block', background:stampSurface }}/>
-              : <div style={{ width:'100%', aspectRatio:'1 / 1.18', display:'grid', placeItems:'center', background:stampSurface }}>
-                  <span style={{ color:'#8C6E6E', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, fontStyle:'italic' }}>{item.label || 'Specimen'}</span>
-                </div>
-            }
-            <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.12)', pointerEvents:'none' }}/>
-            <div style={{ position:'absolute', left:14, bottom:14, padding:'8px 12px', background:'rgba(255,249,247,0.8)', backdropFilter:'blur(6px)', color:'#4A322D', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', border:'1px solid rgba(255,255,255,0.72)', borderRadius:999 }}>
-              {`Specimen No. ${specimenCode}`}
-            </div>
-          </div>
-        </div>
-      </div>
+    <div style={{ width:'100%', display:'grid', placeItems:'center', padding:'8px 0' }}>
+      <StampView item={item} size="lg" />
     </div>
   );
   if (!onClick) return preview;
@@ -284,6 +308,8 @@ function EditorStampPreview({ item, onClick }) {
 
 function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onRequestLocation, focusSignal }) {
   const mapFrameRef = useRef(null);
+  const dragRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
   const placedItems = items.filter(item=>Number.isFinite(item.locationLat) && Number.isFinite(item.locationLng));
   const initialCenter = currentLocation
     ? [currentLocation.lat, currentLocation.lng]
@@ -354,8 +380,53 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
     }
   }
 
+  const handlePointerDown = event => {
+    if (event.target instanceof Element && event.target.closest('button')) return;
+    if (!mapFrameRef.current) return;
+    const centerWorldPoint = latLngToWorld(mapView.centerLat, mapView.centerLng, mapView.zoom);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      centerWorldX: centerWorldPoint.x,
+      centerWorldY: centerWorldPoint.y,
+    };
+    setIsDragging(true);
+    mapFrameRef.current.setPointerCapture?.(event.pointerId);
+  };
+
+  const handlePointerMove = event => {
+    if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
+    const dx = event.clientX - dragRef.current.startX;
+    const dy = event.clientY - dragRef.current.startY;
+    const next = worldToLatLng(
+      dragRef.current.centerWorldX - dx,
+      dragRef.current.centerWorldY - dy,
+      mapView.zoom
+    );
+    setMapView(view => ({
+      ...view,
+      centerLat: next.lat,
+      centerLng: next.lng,
+    }));
+  };
+
+  const handlePointerEnd = event => {
+    if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
+    mapFrameRef.current?.releasePointerCapture?.(event.pointerId);
+    dragRef.current = null;
+    setIsDragging(false);
+  };
+
   return (
-    <div ref={mapFrameRef} style={{ position:'relative', borderRadius:28, overflow:'hidden', background:'#d4d4d6', border:'1px solid rgba(173, 168, 169, 0.42)', boxShadow:'0 18px 42px rgba(95, 109, 136, 0.12)', minHeight:520 }}>
+    <div
+      ref={mapFrameRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      style={{ position:'relative', borderRadius:28, overflow:'hidden', background:'#d4d4d6', border:'1px solid rgba(173, 168, 169, 0.42)', boxShadow:'0 18px 42px rgba(95, 109, 136, 0.12)', minHeight:520, cursor:isDragging ? 'grabbing' : 'grab', touchAction:'none' }}
+    >
       <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg, rgba(255,255,255,0.34), rgba(120,126,141,0.08))', pointerEvents:'none', zIndex:1 }}/>
       <div style={{ position:'absolute', inset:0, background:'radial-gradient(circle, rgba(182,69,18,0.16) 1px, transparent 1.25px) 0 0 / 22px 22px', opacity:0.18, pointerEvents:'none', zIndex:2 }}/>
       <div style={{ position:'absolute', inset:0, zIndex:0, overflow:'hidden', pointerEvents:'none', transform:'scale(1.02)' }}>
@@ -390,24 +461,72 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
               type="button"
               onClick={()=>onSelectStamp(item)}
               aria-label={`Open ${item.label || item.country || 'stamp'} on map`}
-              style={{ position:'absolute', left:point.x - 11, top:point.y - 28, width:22, height:28, padding:0, border:'none', background:'transparent', cursor:'pointer', pointerEvents:'auto', filter:isSelected ? 'drop-shadow(0 10px 18px rgba(37,85,255,0.32))' : 'drop-shadow(0 10px 18px rgba(24,42,68,0.18))' }}
+              style={{ position:'absolute', left:point.x - 10, top:point.y - 24, width:20, height:24, padding:0, border:'none', background:'transparent', cursor:'pointer', pointerEvents:'auto' }}
             >
-              <div style={{ width:'100%', height:'100%', position:'relative', transform:isSelected ? 'scale(1.06)' : 'scale(1)', transition:'transform 0.18s' }}>
-                <div style={{ position:'absolute', inset:'0 8% 18% 8%', borderRadius:12, background:isSelected ? '#2555FF' : '#B64512', transform:'rotate(45deg)' }}/>
-                <div style={{ position:'absolute', left:'23%', top:'14%', width:'54%', height:'42%', borderRadius:'50%', background:'white' }}/>
+              <div style={{ width:'100%', height:'100%', position:'relative', transform:isSelected ? 'translateY(-1px) scale(1.08)' : 'scale(1)', transition:'transform 0.18s', filter:isSelected ? 'drop-shadow(0 8px 14px rgba(37,85,255,0.28))' : 'drop-shadow(0 6px 12px rgba(40,47,63,0.18))' }}>
+                <div style={{ position:'absolute', left:'50%', bottom:1, width:8, height:8, background:isSelected ? '#2555FF' : '#B64512', transform:'translateX(-50%) rotate(45deg)', borderRadius:'0 0 2px 0' }}/>
+                <div style={{ position:'absolute', left:'50%', top:0, width:18, height:18, transform:'translateX(-50%)', borderRadius:'50%', background:isSelected ? '#2555FF' : '#B64512', border:'2px solid rgba(255,255,255,0.92)', boxShadow:'0 1px 0 rgba(255,255,255,0.35) inset' }}/>
+                <div style={{ position:'absolute', left:'50%', top:5, width:8, height:8, transform:'translateX(-50%)', borderRadius:'50%', background:'rgba(255,255,255,0.96)' }}/>
               </div>
             </button>
           );
         })}
         {currentLocation && (() => {
           const point = projectPoint(currentLocation.lat, currentLocation.lng, viewport.width, viewport.height);
-          return <div style={{ position:'absolute', left:point.x - 9, top:point.y - 9, width:18, height:18, borderRadius:'50%', background:'#2555FF', boxShadow:'0 0 0 7px rgba(37,85,255,0.18)', pointerEvents:'none' }}/>;
+          return (
+            <div
+              style={{
+                position:'absolute',
+                left:point.x - 7,
+                top:point.y - 7,
+                width:14,
+                height:14,
+                borderRadius:'50%',
+                background:'#2555FF',
+                border:'2px solid rgba(255,255,255,0.95)',
+                boxShadow:'0 0 0 8px rgba(37,85,255,0.16)',
+                pointerEvents:'none'
+              }}
+            />
+          );
         })()}
       </div>
-      <div style={{ position:'absolute', right:16, bottom:16, zIndex:4, display:'grid', gap:8 }}>
-        <button type="button" onClick={()=>setMapView(view=>({ ...view, zoom: clamp(view.zoom + 1, 1, 6) }))} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#f7d5d9', color:'#5a291f', cursor:'pointer', fontSize:28, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.12)' }}>+</button>
-        <button type="button" onClick={()=>setMapView(view=>({ ...view, zoom: clamp(view.zoom - 1, 1, 6) }))} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#f7d5d9', color:'#5a291f', cursor:'pointer', fontSize:28, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.12)' }}>−</button>
-        <button type="button" onClick={()=>{ if (currentLocation) { setMapView(view=>({ ...view, centerLat: currentLocation.lat, centerLng: currentLocation.lng, zoom: Math.max(view.zoom, 3) })); return; } onRequestLocation?.(); }} style={{ minHeight:0, width:52, height:52, borderRadius:16, border:'none', background:'#b64512', color:'white', cursor:'pointer', fontSize:22, boxShadow:'0 12px 24px rgba(182,69,18,0.22)' }}>◎</button>
+      <div style={{ position:'absolute', right:16, bottom:18, zIndex:4, display:'grid', gap:10 }}>
+        <button
+          type="button"
+          aria-label="Zoom in"
+          onClick={()=>setMapView(view=>({ ...view, zoom: clamp(view.zoom + 1, 1, 12) }))}
+          style={{ minHeight:0, width:54, height:54, borderRadius:18, border:'1px solid rgba(255,255,255,0.72)', background:'rgba(255,245,246,0.96)', color:'#5a291f', cursor:'pointer', fontSize:28, fontWeight:700, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.14)' }}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          aria-label="Zoom out"
+          onClick={()=>setMapView(view=>({ ...view, zoom: clamp(view.zoom - 1, 1, 12) }))}
+          style={{ minHeight:0, width:54, height:54, borderRadius:18, border:'1px solid rgba(255,255,255,0.72)', background:'rgba(255,245,246,0.96)', color:'#5a291f', cursor:'pointer', fontSize:28, fontWeight:700, boxShadow:'0 10px 24px rgba(95, 109, 136, 0.14)' }}
+        >
+          −
+        </button>
+        <button
+          type="button"
+          aria-label={currentLocation ? 'Center on my location' : 'Enable location'}
+          onClick={()=>{
+            if (currentLocation) {
+              setMapView(view=>({
+                ...view,
+                centerLat: currentLocation.lat,
+                centerLng: currentLocation.lng,
+                zoom: Math.max(view.zoom, 7),
+              }));
+              return;
+            }
+            onRequestLocation?.();
+          }}
+          style={{ minHeight:0, width:54, height:54, borderRadius:18, border:'none', background:'#B64512', color:'white', cursor:'pointer', fontSize:22, boxShadow:'0 12px 24px rgba(182,69,18,0.22)' }}
+        >
+          ◎
+        </button>
       </div>
       <div style={{ position:'absolute', left:14, bottom:12, zIndex:2, color:'rgba(61,53,56,0.68)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', pointerEvents:'none' }}>
         © OpenStreetMap
@@ -1027,7 +1146,7 @@ function SignInScreen({ onSignIn }) {
    MAIN APP
 ════════════════════════════════════════════════════════ */
 export default function StampApp() {
-  const [tab,         setTab]         = useState('feed');
+  const [tab,         setTab]         = useState('map');
   const [account,     setAccount]     = useState(() => readStoredProfile());
   const [myItems,     setMyItems]     = useState(() => {
     const savedAccount = readStoredProfile();
@@ -1039,6 +1158,7 @@ export default function StampApp() {
   const [draft,       setDraft]       = useState(null);
   const [showCamera,  setShowCamera]  = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingItemId, setEditingItemId] = useState(null);
   const [colFilter,   setColFilter]   = useState('All');
   const [browseFilter,setBrowseFilter]= useState('All');
   const [viewingProfile, setViewingProfile] = useState(null);
@@ -1050,6 +1170,7 @@ export default function StampApp() {
   const [selectedMapItemId, setSelectedMapItemId] = useState(null);
   const [mapFocusSignal, setMapFocusSignal] = useState(0);
   const fileRef = useRef();
+  const debugScrollRef = useRef(null);
 
   useEffect(() => {
     const el = document.createElement('style');
@@ -1059,14 +1180,70 @@ export default function StampApp() {
   }, []);
 
   useEffect(() => {
+    document.documentElement.style.overflowY = showCreateModal ? 'hidden' : 'auto';
+    document.body.style.overflowY = showCreateModal ? 'hidden' : 'auto';
+    document.body.classList.toggle('creator-open', showCreateModal);
+    return () => {
+      document.documentElement.style.overflowY = 'auto';
+      document.body.style.overflowY = 'auto';
+      document.body.classList.remove('creator-open');
+    };
+  }, [showCreateModal]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const isDesktop = window.matchMedia('(pointer:fine)').matches && window.innerWidth >= 960;
+    if (!isDesktop || showCreateModal) return undefined;
+
+    const logScrollState = (reason, target) => {
+      if (!window.location.hostname.includes('localhost') && window.location.hostname !== '127.0.0.1') return;
+      const next = {
+        reason,
+        scrollY: Math.round(window.scrollY),
+        innerHeight: window.innerHeight,
+        bodyScrollHeight: document.body.scrollHeight,
+        docScrollHeight: document.documentElement.scrollHeight,
+        bodyOverflow: getComputedStyle(document.body).overflowY,
+        htmlOverflow: getComputedStyle(document.documentElement).overflowY,
+        target: target instanceof Element ? `${target.tagName.toLowerCase()}.${target.className || ''}` : String(target),
+      };
+      const sameAsLast = JSON.stringify(next) === debugScrollRef.current;
+      if (!sameAsLast) {
+        debugScrollRef.current = JSON.stringify(next);
+        console.info('[stampz-scroll-debug]', next);
+      }
+    };
+
+    const onWheel = event => {
+      const target = event.target;
+      const interactiveTarget = target instanceof Element
+        ? target.closest('input, textarea, select, [data-native-scroll], [contenteditable="true"]')
+        : null;
+      if (interactiveTarget) return;
+      if (document.body.classList.contains('creator-open')) return;
+      const before = window.scrollY;
+      window.scrollBy({ top: event.deltaY, left: 0, behavior: 'auto' });
+      const after = window.scrollY;
+      if (before === after && Math.abs(event.deltaY) > 0) {
+        logScrollState('wheel-stuck', target);
+      }
+    };
+
+    const onLoadState = () => logScrollState('mount', document.body);
+    const wheelOptions = { passive: true, capture: true };
+    window.addEventListener('wheel', onWheel, wheelOptions);
+    window.addEventListener('resize', onLoadState);
+    onLoadState();
+    return () => {
+      window.removeEventListener('wheel', onWheel, wheelOptions);
+      window.removeEventListener('resize', onLoadState);
+    };
+  }, [showCreateModal]);
+
+  useEffect(() => {
     if (!account?.email || !collectionReady) return;
     localStorage.setItem(collectionStorageKey(account.email), JSON.stringify(myItems));
   }, [account?.email, collectionReady, myItems]);
-
-  useEffect(() => {
-    document.body.classList.toggle('creator-open', showCreateModal);
-    return () => document.body.classList.remove('creator-open');
-  }, [showCreateModal]);
 
   const handleSignIn = user => {
     const savedItems = readStoredCollection(user.email);
@@ -1080,7 +1257,7 @@ export default function StampApp() {
     localStorage.removeItem(PROFILE_STORAGE_KEY);
     localStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY);
     setAccount(null);
-    setTab('feed');
+    setTab('map');
     setStep('type');
     setDraft(null);
     setShowCreateModal(false);
@@ -1113,23 +1290,6 @@ export default function StampApp() {
     );
   };
 
-  const handleLocationAction = () => {
-    if (locationStatus === 'ready' && currentLocation) {
-      setMapFocusSignal(signal=>signal + 1);
-      showToast('Centered on your location.');
-      return;
-    }
-    if (locationStatus === 'denied') {
-      showToast('Enable location for Stampz in iPhone Settings.');
-      return;
-    }
-    if (locationStatus === 'unsupported') {
-      showToast('Location is unavailable on this device.');
-      return;
-    }
-    requestLocation();
-  };
-
   const handleImage = e => {
     const file = e.target.files?.[0]; if (!file) return;
     const draftType = draft?.type;
@@ -1159,20 +1319,32 @@ export default function StampApp() {
   const handleSave = () => {
     const nextItem = {
       ...draft,
-      id: genId(),
-      createdAt: Date.now(),
+      id: editingItemId || genId(),
+      createdAt: draft.createdAt || Date.now(),
       locationLat: draft.locationLat ?? currentLocation?.lat ?? null,
       locationLng: draft.locationLng ?? currentLocation?.lng ?? null,
       locationLabel: draft.locationLabel || (currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced'),
     };
-    setMyItems(p=>[nextItem, ...p]);
+    if (editingItemId) {
+      setMyItems(items => items.map(item => item.id === editingItemId ? nextItem : item));
+    } else {
+      setMyItems(items => [nextItem, ...items]);
+    }
     if (nextItem.locationLat != null && nextItem.locationLng != null) setSelectedMapItemId(nextItem.id);
-    setDraft(null); setStep('type'); setTab('feed'); setShowCreateModal(false);
-    showToast(nextItem.type==='stamp' ? (nextItem.locationLat != null ? '✉️ Stamp pinned to your map!' : '✉️ Stamp saved to your archive!') : '✉ Postcard saved!');
+    setEditingItemId(null);
+    setDraft(null); setStep('type'); setTab('map'); setShowCreateModal(false);
+    showToast(
+      editingItemId
+        ? (nextItem.type === 'stamp' ? '✉️ Stamp updated!' : '✉ Postcard updated!')
+        : nextItem.type==='stamp'
+          ? (nextItem.locationLat != null ? '✉️ Stamp pinned to your map!' : '✉️ Stamp saved to your archive!')
+          : '✉ Postcard saved!'
+    );
   };
 
   const openCreateModal = () => {
     setShowCreateModal(true);
+    setEditingItemId(null);
     setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', perforationStyle:'classic', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
     setStep('customize');
     setShowCamera(true);
@@ -1181,35 +1353,51 @@ export default function StampApp() {
   const closeCreateModal = () => {
     setShowCreateModal(false);
     setShowCamera(false);
+    setEditingItemId(null);
     setDraft(null);
     setStep('type');
   };
 
   const initDraft = type => {
+    setEditingItemId(null);
     setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', perforationStyle:'classic', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
     setShowCreateModal(true);
     setStep('upload');
   };
 
+  const startEditingItem = item => {
+    setLightbox(null);
+    setEditingItemId(item.id);
+    setDraft({
+      ...item,
+      note: item.note || '',
+      country: item.country || '',
+      label: item.label || '',
+      stampColor: item.stampColor || '#FFFDF8',
+      perforationStyle: item.perforationStyle || 'classic',
+      agingIntensity: item.agingIntensity ?? 36,
+      collection: item.collection || 'Destinations',
+    });
+    setShowCreateModal(true);
+    setStep('customize');
+  };
+
   const handleTabSelect = id => {
-    if (id === 'feed') {
-      if (tab === 'feed') {
-        setViewingProfile(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-      setTab('feed');
-      setViewingProfile(null);
-      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    if (id === tab) {
+      if (id === 'feed') setViewingProfile(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     setTab(id);
+    if (id === 'feed') setViewingProfile(null);
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
   };
 
+  const savedStampItems = myItems.filter(item=>item.type==='stamp');
   const filteredMine      = colFilter==='All'      ? myItems          : myItems.filter(i=>i.collection===colFilter);
-  const placedMine = myItems.filter(item=>Number.isFinite(item.locationLat) && Number.isFinite(item.locationLng));
-  const unplacedMine = myItems.filter(item=>!Number.isFinite(item.locationLat) || !Number.isFinite(item.locationLng));
-  const selectedMapItem = myItems.find(item=>item.id===selectedMapItemId) || placedMine[0] || null;
+  const placedMine = savedStampItems.filter(item=>Number.isFinite(item.locationLat) && Number.isFinite(item.locationLng));
+  const unplacedMine = savedStampItems.filter(item=>!Number.isFinite(item.locationLat) || !Number.isFinite(item.locationLng));
+  const selectedMapItem = savedStampItems.find(item=>item.id===selectedMapItemId) || placedMine[0] || null;
   const filteredCommunity = browseFilter==='All'   ? COMMUNITY_STAMPS : COMMUNITY_STAMPS.filter(s=>s.collection===browseFilter);
   const profileStamps = viewingProfile
     ? COMMUNITY_STAMPS.filter(stamp=>stamp.author===viewingProfile)
@@ -1354,13 +1542,17 @@ export default function StampApp() {
               draft.type==='stamp' ? (
                 <div style={{ maxWidth:520, margin:'0 auto', display:'flex', flexDirection:'column', gap:18 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
-                    <button onClick={()=>setShowCamera(true)} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#B33A0B', cursor:'pointer', fontSize:18, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>← Edit Specimen</button>
+                    <button onClick={()=>setShowCamera(true)} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#B33A0B', cursor:'pointer', fontSize:18, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>← Edit Stamp</button>
                     <button onClick={handleSave} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#B33A0B', cursor:'pointer', fontSize:18, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>Done</button>
                   </div>
 
                   <EditorStampPreview item={draft} onClick={()=>setLightbox(draft)}/>
 
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:14 }}>
+                    <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
+                      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Stamp Name</label>
+                      <input value={draft.label} onChange={e=>setDraft(d=>({...d,label:e.target.value}))} placeholder="Freedom Flags" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
+                    </div>
                     <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
                       <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Origin</label>
                       <input value={draft.country} onChange={e=>setDraft(d=>({...d,country:e.target.value.toUpperCase()}))} placeholder="CANADA" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
@@ -1459,15 +1651,15 @@ export default function StampApp() {
           </div>
         )}
 
-        {/* ══ COLLECTION */}
-        {tab==='collection' && (
+        {/* ══ SAVED STAMPS */}
+        {tab==='saved' && (
           <div style={{ maxWidth:430, margin:'0 auto', color:'#4A1019' }}>
             <section style={{ textAlign:'center', padding:'12px 0 24px' }}>
               <div style={{ width:92, height:92, margin:'0 auto 18px', borderRadius:18, background:'#2555FF', boxShadow:'0 16px 32px rgba(37,85,255,0.18)', display:'grid', placeItems:'center', position:'relative' }}>
                 <div style={{ width:46, height:46, borderRadius:'50%', background:'white', color:'#2555FF', display:'grid', placeItems:'center', fontSize:24 }}>✓</div>
                 <div style={{ position:'absolute', right:-8, top:-8, width:28, height:28, borderRadius:10, background:'#FFD227', color:'#4A3D00', display:'grid', placeItems:'center', fontSize:14, fontWeight:700 }}>✦</div>
               </div>
-              <h2 style={{ margin:'0 0 8px', fontFamily:'"Playfair Display",Georgia,serif', fontSize:34, lineHeight:0.98, color:'#A82412', fontWeight:700 }}>Specimen Archive</h2>
+              <h2 style={{ margin:'0 0 8px', fontFamily:'"Playfair Display",Georgia,serif', fontSize:34, lineHeight:0.98, color:'#A82412', fontWeight:700 }}>Stamp Collection</h2>
               <p style={{ margin:'0 0 20px', color:'#6E6B78', fontSize:13, lineHeight:1.6 }}>{account.name}&apos;s catalogued collection.</p>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginBottom:22 }}>
                 {[
@@ -1505,7 +1697,7 @@ export default function StampApp() {
                   {filteredMine.slice(0,1).map(item=>(
                     <div key={item.id} style={{ background:'rgba(255,255,255,0.9)', borderRadius:26, padding:'18px 16px 20px', boxShadow:'0 18px 36px rgba(95,109,136,0.08)', border:'1px solid rgba(241,231,233,0.9)' }}>
                       <div style={{ textAlign:'center', marginBottom:18 }}>
-                        <p style={{ margin:'0 0 6px', color:'#A82412', fontFamily:'"Playfair Display",Georgia,serif', fontSize:44, lineHeight:0.95, fontWeight:700 }}>Specimen<br/>Placed!</p>
+                        <p style={{ margin:'0 0 6px', color:'#A82412', fontFamily:'"Playfair Display",Georgia,serif', fontSize:44, lineHeight:0.95, fontWeight:700 }}>Stamp<br/>Saved!</p>
                         <p style={{ margin:0, color:'#7A4E4A', fontSize:13, lineHeight:1.6 }}>Your capture has been officially catalogued.</p>
                       </div>
                       <button onClick={()=>setLightbox(item)} style={{ width:'100%', border:'none', background:'#fff8fb', borderRadius:22, padding:'16px 14px', cursor:'pointer', boxShadow:'inset 0 0 0 1px rgba(244,224,228,0.9)' }}>
@@ -1519,8 +1711,11 @@ export default function StampApp() {
                         </div>
                       </button>
                       <div style={{ display:'grid', gap:12, marginTop:18 }}>
-                        <button onClick={()=>setTab('feed')} style={{ width:'100%', padding:'16px 18px', border:'none', borderRadius:14, background:'#B64512', color:'white', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700 }}>View on Map</button>
-                        <button onClick={()=>setLightbox(item)} style={{ width:'100%', padding:'16px 18px', border:'none', borderRadius:14, background:'#C7D1FF', color:'#123DBF', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700 }}>Open Specimen</button>
+                        <button onClick={()=>setTab('map')} style={{ width:'100%', padding:'16px 18px', border:'none', borderRadius:14, background:'#B64512', color:'white', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700 }}>View on Map</button>
+                        <button onClick={()=>setLightbox(item)} style={{ width:'100%', padding:'16px 18px', border:'none', borderRadius:14, background:'#C7D1FF', color:'#123DBF', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700 }}>Open Stamp</button>
+                        {item.type === 'stamp' && (
+                          <button onClick={()=>startEditingItem(item)} style={{ width:'100%', padding:'16px 18px', border:'1px solid rgba(182,69,18,0.2)', borderRadius:14, background:'white', color:'#B64512', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700 }}>Edit Stamp</button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1533,7 +1728,7 @@ export default function StampApp() {
                             {item.type==='stamp' ? <StampView item={item} size="sm"/> : <PostcardView item={item} scale={0.34}/>}
                           </div>
                           <p style={{ margin:'0 0 4px', color:'#9B2414', fontSize:9, letterSpacing:'0.16em', textTransform:'uppercase' }}>{item.collection}</p>
-                          <p style={{ margin:0, color:'#4A1019', fontFamily:'"Playfair Display",Georgia,serif', fontSize:16, lineHeight:1.1 }}>{item.label||item.destination||'Saved specimen'}</p>
+                          <p style={{ margin:0, color:'#4A1019', fontFamily:'"Playfair Display",Georgia,serif', fontSize:16, lineHeight:1.1 }}>{item.label||item.destination||'Saved stamp'}</p>
                         </button>
                       ))}
                     </div>
@@ -1544,7 +1739,90 @@ export default function StampApp() {
           </div>
         )}
 
-        {/* ══ FEED */}
+        {/* ══ MAP VIEW */}
+        {tab==='map' && (
+          <div style={{ maxWidth:430, margin:'0 auto' }}>
+            <section style={{ marginBottom:28 }}>
+              <div style={{ marginBottom:18 }}>
+                <h2 style={{ fontFamily:'"Playfair Display",Georgia,serif', color:'#A82412', fontSize:26, margin:'0 0 6px', lineHeight:1.05 }}>Map View</h2>
+                <p style={{ margin:0, fontSize:12, color:'#6E6B78', lineHeight:1.6 }}>Pin your journeys, then open each stamp from the map.</p>
+              </div>
+
+              <div style={{ display:'grid', gap:16, marginBottom:16 }}>
+                {locationStatus !== 'ready' && (
+                  <div style={{ padding:'14px 16px', borderRadius:20, background:'rgba(255,255,255,0.84)', border:'1px solid rgba(214,203,206,0.86)', color:'#7A4E4A', fontSize:12, lineHeight:1.65 }}>
+                    Turn on location to pin each new stamp automatically. You can still capture now and start building your archive.
+                  </div>
+                )}
+
+                <div style={{ position:'relative', paddingTop:44 }}>
+                  <div style={{ position:'absolute', left:16, top:12, zIndex:5, display:'inline-flex', alignItems:'center', gap:12, background:'#FFD6D6', borderRadius:20, padding:'12px 16px', boxShadow:'0 10px 24px rgba(95,109,136,0.1)' }}>
+                    <span style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      {['#B64512','#2555FF','#7A680D'].map(color=><span key={color} style={{ width:18, height:18, borderRadius:'50%', background:color }}/>)}
+                    </span>
+                    <strong style={{ color:'#4A1F18', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase' }}>{placedMine.length} stamped</strong>
+                  </div>
+                  <WorldMap
+                    items={savedStampItems}
+                    currentLocation={currentLocation}
+                    selectedItemId={selectedMapItem?.id}
+                    onSelectStamp={item=>{
+                      setSelectedMapItemId(item.id);
+                      setLightbox(item);
+                    }}
+                    onRequestLocation={requestLocation}
+                    focusSignal={mapFocusSignal}
+                  />
+                </div>
+
+                <div style={{ background:'rgba(255,255,255,0.88)', borderRadius:22, padding:'16px 18px', boxShadow:'0 14px 30px rgba(95,109,136,0.08)', border:'1px solid rgba(223,216,218,0.9)' }}>
+                  <p style={{ margin:'0 0 6px', color:'#A82412', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>{selectedMapItem ? 'Selected stamp' : 'Explorer ready'}</p>
+                  <p style={{ margin:'0 0 6px', color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:22, lineHeight:1.05 }}>
+                    {selectedMapItem ? (selectedMapItem.label || selectedMapItem.country || 'Pinned stamp') : 'Tap a pin to open its stamp.'}
+                  </p>
+                  <p style={{ margin:0, color:'#6E6B78', fontSize:12, lineHeight:1.6 }}>
+                    {selectedMapItem
+                      ? `Saved to ${selectedMapItem.collection || 'Archive'} as a ${selectedMapItem.type}.`
+                      : 'Capture a new stamp, then revisit it from the map or your archive.'}
+                  </p>
+                </div>
+              </div>
+
+              {savedStampItems.length > 0 && (
+                <div style={{ display:'grid', gap:12 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                    <h3 style={{ margin:0, color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:22 }}>Recent Journey Stamps</h3>
+                    <button onClick={()=>setTab('saved')} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#6C63FF', cursor:'pointer', fontSize:11, fontFamily:'"Libre Baskerville",Georgia,serif', letterSpacing:'0.08em' }}>Open archive →</button>
+                  </div>
+                  <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:6 }}>
+                    {savedStampItems.slice(0, 6).map(item=>(
+                      <button key={item.id} onClick={()=>setLightbox(item)} style={{ minWidth:156, border:'none', background:'white', borderRadius:18, padding:'14px 12px', display:'grid', gap:10, cursor:'pointer', boxShadow:'0 12px 30px rgba(108,99,255,0.08)', textAlign:'left' }}>
+                        <div style={{ display:'grid', placeItems:'center', minHeight:138 }}>
+                          {item.type==='stamp' ? <StampView item={item} size="sm"/> : <PostcardView item={item} scale={0.32}/>}
+                        </div>
+                        <div>
+                          <p style={{ margin:'0 0 4px', color:'#A82412', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase' }}>{item.locationLabel || item.collection}</p>
+                          <p style={{ margin:0, color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:16, lineHeight:1.1 }}>{item.label || item.destination || 'Untitled stamp'}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {unplacedMine.length > 0 && (
+                <div style={{ marginTop:16, background:'rgba(255,255,255,0.88)', border:'1px solid rgba(247,215,232,0.9)', borderRadius:18, padding:'14px 16px' }}>
+                  <p style={{ margin:'0 0 6px', color:'#A82412', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' }}>Unplaced memories</p>
+                  <p style={{ margin:0, fontSize:12, color:'#7A7487', lineHeight:1.6 }}>
+                    {unplacedMine.length} saved {unplacedMine.length===1 ? 'stamp is' : 'stamps are'} waiting for a location. New captures will pin automatically when location access is available.
+                  </p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* ══ FEED VIEW */}
         {tab==='feed' && (
           <div>
             {viewingProfile && profile ? (
@@ -1578,80 +1856,8 @@ export default function StampApp() {
               </div>
             ) : (
               <div style={{ maxWidth:430, margin:'0 auto' }}>
-                <section style={{ marginBottom:28 }}>
-                  <div style={{ marginBottom:18 }}>
-                    <h2 style={{ fontFamily:'"Playfair Display",Georgia,serif', color:'#A82412', fontSize:26, margin:'0 0 6px', lineHeight:1.05 }}>My Map</h2>
-                    <p style={{ margin:0, fontSize:12, color:'#6E6B78', lineHeight:1.6 }}>Pin your journeys, then open each specimen from the map.</p>
-                  </div>
-
-                  <div style={{ display:'grid', gap:16, marginBottom:16 }}>
-                    {locationStatus !== 'ready' && (
-                      <div style={{ padding:'14px 16px', borderRadius:20, background:'rgba(255,255,255,0.84)', border:'1px solid rgba(214,203,206,0.86)', color:'#7A4E4A', fontSize:12, lineHeight:1.65 }}>
-                        Turn on location to pin each new stamp automatically. You can still capture now and start building your archive.
-                      </div>
-                    )}
-
-                    <div style={{ position:'relative', paddingTop:44 }}>
-                      <div style={{ position:'absolute', left:16, top:12, zIndex:5, display:'inline-flex', alignItems:'center', gap:12, background:'#FFD6D6', borderRadius:20, padding:'12px 16px', boxShadow:'0 10px 24px rgba(95,109,136,0.1)' }}>
-                        <span style={{ display:'flex', alignItems:'center', gap:4 }}>
-                          {['#B64512','#2555FF','#7A680D'].map(color=><span key={color} style={{ width:18, height:18, borderRadius:'50%', background:color }}/>)}
-                        </span>
-                        <strong style={{ color:'#4A1F18', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase' }}>{placedMine.length} stamped</strong>
-                      </div>
-                      <WorldMap items={myItems} currentLocation={currentLocation} selectedItemId={selectedMapItem?.id} onSelectStamp={item=>setSelectedMapItemId(item.id)} onRequestLocation={requestLocation} focusSignal={mapFocusSignal}/>
-                      <div style={{ position:'absolute', right:16, bottom:16, zIndex:5, display:'grid', gap:10 }}>
-                        <button onClick={openCreateModal} style={{ minHeight:0, width:56, height:56, border:'none', borderRadius:16, background:'#FFD6D6', color:'#4A1F18', cursor:'pointer', fontSize:34, boxShadow:'0 10px 24px rgba(95,109,136,0.1)' }}>+</button>
-                        <button onClick={handleLocationAction} style={{ minHeight:0, width:56, height:56, border:'none', borderRadius:16, background:'#B64512', color:'white', cursor:'pointer', fontSize:24, boxShadow:'0 10px 24px rgba(182,69,18,0.18)' }}>◎</button>
-                      </div>
-                    </div>
-
-                    <div style={{ background:'rgba(255,255,255,0.88)', borderRadius:22, padding:'16px 18px', boxShadow:'0 14px 30px rgba(95,109,136,0.08)', border:'1px solid rgba(223,216,218,0.9)' }}>
-                      <p style={{ margin:'0 0 6px', color:'#A82412', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>{selectedMapItem ? 'Selected specimen' : 'Explorer ready'}</p>
-                      <p style={{ margin:'0 0 6px', color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:22, lineHeight:1.05 }}>
-                        {selectedMapItem ? (selectedMapItem.label || selectedMapItem.country || 'Pinned stamp') : 'Tap a pin to open its specimen.'}
-                      </p>
-                      <p style={{ margin:0, color:'#6E6B78', fontSize:12, lineHeight:1.6 }}>
-                        {selectedMapItem
-                          ? `Saved to ${selectedMapItem.collection || 'Archive'} as a ${selectedMapItem.type}.`
-                          : 'Capture a new stamp, then revisit it from the map or your archive.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {myItems.length > 0 && (
-                    <div style={{ display:'grid', gap:12 }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
-                        <h3 style={{ margin:0, color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:22 }}>Recent Journey Stamps</h3>
-                        <button onClick={()=>setTab('collection')} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#6C63FF', cursor:'pointer', fontSize:11, fontFamily:'"Libre Baskerville",Georgia,serif', letterSpacing:'0.08em' }}>Open archive →</button>
-                      </div>
-                      <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:6 }}>
-                        {myItems.slice(0, 6).map(item=>(
-                          <button key={item.id} onClick={()=>setLightbox(item)} style={{ minWidth:156, border:'none', background:'white', borderRadius:18, padding:'14px 12px', display:'grid', gap:10, cursor:'pointer', boxShadow:'0 12px 30px rgba(108,99,255,0.08)', textAlign:'left' }}>
-                            <div style={{ display:'grid', placeItems:'center', minHeight:138 }}>
-                              {item.type==='stamp' ? <StampView item={item} size="sm"/> : <PostcardView item={item} scale={0.32}/>}
-                            </div>
-                            <div>
-                              <p style={{ margin:'0 0 4px', color:'#A82412', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase' }}>{item.locationLabel || item.collection}</p>
-                              <p style={{ margin:0, color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:16, lineHeight:1.1 }}>{item.label || item.destination || 'Untitled stamp'}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {unplacedMine.length > 0 && (
-                    <div style={{ marginTop:16, background:'rgba(255,255,255,0.88)', border:'1px solid rgba(247,215,232,0.9)', borderRadius:18, padding:'14px 16px' }}>
-                      <p style={{ margin:'0 0 6px', color:'#A82412', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' }}>Unplaced memories</p>
-                      <p style={{ margin:0, fontSize:12, color:'#7A7487', lineHeight:1.6 }}>
-                        {unplacedMine.length} saved {unplacedMine.length===1 ? 'stamp is' : 'stamps are'} waiting for a location. New captures will pin automatically when location access is available.
-                      </p>
-                    </div>
-                  )}
-                </section>
-
                 <div style={{ marginBottom:18 }}>
-                  <h2 style={{ fontFamily:'"Playfair Display",Georgia,serif', color:'#111', fontSize:28, margin:'0 0 4px' }}>Collector Highlights</h2>
+                  <h2 style={{ fontFamily:'"Playfair Display",Georgia,serif', color:'#111', fontSize:28, margin:'0 0 4px' }}>Feed View</h2>
                   <p style={{ margin:0, fontSize:12, color:'#9B7BAE' }}>Fresh stampz from the collector community.</p>
                 </div>
                 <div style={{ display:'flex', gap:14, overflowX:'auto', padding:'2px 2px 16px', margin:'0 -2px 14px' }}>
@@ -1716,8 +1922,9 @@ export default function StampApp() {
 
       {!showCreateModal && (
         <nav className="app-nav" aria-label="Primary">
-          <TabButton id="feed" icon="🗺️" label="Map" active={tab==='feed'} onSelect={handleTabSelect}/>
-          <TabButton id="collection" icon="👤" label="Profile" active={tab==='collection'} onSelect={handleTabSelect}/>
+          <TabButton id="map" icon="🗺️" label="Map View" active={tab==='map'} onSelect={handleTabSelect}/>
+          <TabButton id="feed" icon="📰" label="Feed View" active={tab==='feed'} onSelect={handleTabSelect}/>
+          <TabButton id="saved" icon="✉️" label="Saved Stamps" active={tab==='saved'} onSelect={handleTabSelect}/>
         </nav>
       )}
 
@@ -1735,6 +1942,9 @@ export default function StampApp() {
             </div>
             <div style={{ display:'flex', gap:10, flexWrap:'wrap', justifyContent:'center' }}>
               <button onClick={()=>{navigator.clipboard?.writeText(window.location.href).catch(()=>{});showToast('📋 Link copied!');setLightbox(null);}} style={{ padding:'9px 22px', background:'#6C63FF', color:'white', border:'none', borderRadius:4, cursor:'pointer', fontSize:12, fontFamily:'"Libre Baskerville",Georgia,serif', letterSpacing:'0.08em', transition:'background 0.2s' }} onMouseEnter={e=>e.currentTarget.style.background='#FF7AA8'} onMouseLeave={e=>e.currentTarget.style.background='#6C63FF'}>Share ✉️</button>
+              {myItems.find(i=>i.id===lightbox.id)&&lightbox.type==='stamp'&&(
+                <button onClick={()=>startEditingItem(lightbox)} style={{ padding:'9px 22px', background:'white', color:'#B64512', border:'1.5px solid #B64512', borderRadius:4, cursor:'pointer', fontSize:12, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Edit Stamp</button>
+              )}
               {!myItems.find(i=>i.id===lightbox.id)&&lightbox.author&&(
                 <button onClick={()=>{setMyItems(p=>[{...lightbox,id:genId(),createdAt:Date.now()},...p]);showToast('✉️ Saved!');setLightbox(null);}} style={{ padding:'9px 22px', background:'white', color:'#6C63FF', border:'1.5px solid #6C63FF', borderRadius:4, cursor:'pointer', fontSize:12, fontFamily:'"Libre Baskerville",Georgia,serif', transition:'all 0.2s' }} onMouseEnter={e=>{e.currentTarget.style.background='#6C63FF';e.currentTarget.style.color='white';}} onMouseLeave={e=>{e.currentTarget.style.background='white';e.currentTarget.style.color='#6C63FF';}}>Save to Collection</button>
               )}
