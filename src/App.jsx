@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const STAMP_COLORS = ['#FFFDF8','#FDE2E4','#DDEAFB','#E9E6FF','#DFF4EE','#FFF0D2','#F7D7E8','#F8ECE6'];
+const STAMP_TEXT_COLORS = ['#4A322D','#315476','#8A3D2C','#5B4F7E','#476758','#A95A3B'];
 const CURRENT_YEAR = 2026;
 const COLLECTIONS = ['Destinations','Nature','Architecture','Food & Culture','Wildlife','People & Culture','Abstract'];
 const PROFILE_STORAGE_KEY = 'stampz.profile';
@@ -236,19 +237,20 @@ function ScallopEdges({ inset, marginX, marginY, radius, step, color='white' }) 
 /* ── StampView ── */
 function StampView({ item, size='md', onClick, showMeta=false }) {
   const { w, h } = STAMP_SIZES[size];
-  const stampCode = (item.label || item.note || '824-A').toUpperCase().slice(0, 18);
   const stampBg = item.stampColor || '#F6DDE2';
   const stampPaper = '#FFFDFC';
   const edgeStroke = 'rgba(188, 172, 172, 0.82)';
+  const textColor = item.textColor || '#4A322D';
   const aging = getAgingStyle(item.agingIntensity ?? 36);
   const outerRadius = Math.max(12, w * 0.08);
   const maskImage = buildStampMask(w, h, Math.max(4.2, w * 0.032), Math.max(8.8, w * 0.064));
-  const photoInsetX = Math.max(10, w * 0.068);
-  const photoInsetTop = Math.max(10, w * 0.068);
-  const photoInsetBottom = Math.max(20, h * 0.12);
+  const photoInsetX = Math.max(12, w * 0.08);
+  const photoInsetTop = Math.max(12, w * 0.08);
+  const photoInsetBottom = Math.max(34, h * 0.2);
   const imageHeight = h - photoInsetTop - photoInsetBottom;
   const countryFont = Math.max(8, w * 0.06);
-  const labelFont = Math.max(7, w * 0.05);
+  const labelFont = Math.max(8, w * 0.056);
+  const metaFont = Math.max(6, w * 0.038);
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
       <div style={{ cursor:onClick?'pointer':'default', transition:'transform 0.22s', filter:'drop-shadow(0 18px 30px rgba(30, 34, 48, 0.16))' }}
@@ -269,22 +271,17 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
             <div style={{ position:'absolute', inset:0, ...aging.paperOverlay, pointerEvents:'none', zIndex:1 }}/>
             <div style={{ position:'absolute', inset:0, backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`, opacity:aging.grainOpacity, mixBlendMode:'multiply', pointerEvents:'none', zIndex:1 }}/>
             <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.18)', pointerEvents:'none', zIndex:1 }}/>
-            <div style={{ position:'absolute', top:10, right:8, color:'#4A322D', fontSize:countryFont, letterSpacing:'0.22em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', writingMode:'vertical-rl', textOrientation:'mixed', zIndex:2, textShadow:'0 1px 0 rgba(255,255,255,0.58)' }}>
+            <div style={{ position:'absolute', top:10, right:8, color:textColor, fontSize:countryFont, letterSpacing:'0.22em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', writingMode:'vertical-rl', textOrientation:'mixed', zIndex:2, textShadow:'0 1px 0 rgba(255,255,255,0.58)' }}>
               {item.country || 'STAMPZ'}
             </div>
           </div>
-          <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, bottom:Math.max(8, h * 0.045), display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:8, zIndex:2 }}>
-              <div style={{ minWidth:0 }}>
-                <div style={{ color:'#4A322D', fontSize:labelFont, letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', textShadow:'0 1px 0 rgba(255,255,255,0.6)' }}>
-                  {item.label || 'Untitled Stamp'}
-                </div>
-                <div style={{ color:'rgba(74,50,45,0.76)', fontSize:Math.max(6, w * 0.038), letterSpacing:'0.1em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', marginTop:2 }}>
-                  {item.createdAt ? new Date(item.createdAt).getFullYear() : CURRENT_YEAR}
-                </div>
-              </div>
-              <div style={{ padding:`${Math.max(6, w * 0.03)}px ${Math.max(10, w * 0.05)}px`, background:'rgba(255,249,247,0.78)', backdropFilter:'blur(6px)', color:'#4A322D', fontSize:labelFont, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', border:'1px solid rgba(255,255,255,0.72)', borderRadius:999 }}>
-                {`Stamp No. ${stampCode}`}
-              </div>
+          <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, bottom:Math.max(10, h * 0.05), display:'grid', gap:3, zIndex:2 }}>
+            <div style={{ color:textColor, fontSize:labelFont, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', textShadow:'0 1px 0 rgba(255,255,255,0.6)', minHeight:labelFont * 1.25 }}>
+              {item.label || ''}
+            </div>
+            <div style={{ color:textColor, opacity:0.76, fontSize:metaFont, letterSpacing:'0.1em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>
+              © {item.createdAt ? new Date(item.createdAt).getFullYear() : CURRENT_YEAR}
+            </div>
           </div>
         </div>
       </div>
@@ -1297,6 +1294,33 @@ export default function StampApp() {
   };
 
   const showToast = (msg, dur=2400) => { setToast(msg); setTimeout(()=>setToast(null), dur); };
+  const reverseGeocode = useCallback(async location => {
+    if (!location) return null;
+    try {
+      const params = new URLSearchParams({
+        format: 'jsonv2',
+        lat: String(location.lat),
+        lon: String(location.lng),
+        zoom: '10',
+        addressdetails: '1',
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      const address = data.address || {};
+      const city = address.city || address.town || address.village || address.hamlet || address.county || '';
+      const country = address.country || '';
+      const locationLabel = [city, country].filter(Boolean).join(', ') || data.display_name || '';
+      return { city, country, locationLabel };
+    } catch {
+      return null;
+    }
+  }, []);
+
   const fetchCurrentLocation = useCallback(({ silent = false } = {}) => {
     if (!navigator.geolocation) {
       setLocationStatus('unsupported');
@@ -1346,6 +1370,9 @@ export default function StampApp() {
 
   const handleCameraCapture = async url => {
     const existingLocation = currentLocation;
+    const existingLabel = existingLocation
+      ? `${existingLocation.lat.toFixed(2)}, ${existingLocation.lng.toFixed(2)}`
+      : null;
 
     setDraft(d=>({
       ...d,
@@ -1353,17 +1380,32 @@ export default function StampApp() {
       imageRaw:null,
       locationLat: existingLocation?.lat ?? d?.locationLat ?? null,
       locationLng: existingLocation?.lng ?? d?.locationLng ?? null,
-      locationLabel: existingLocation
-        ? `${existingLocation.lat.toFixed(2)}, ${existingLocation.lng.toFixed(2)}`
-        : d?.locationLabel || 'Unplaced',
+      locationLabel: existingLabel || d?.locationLabel || 'Unplaced',
     }));
     setShowCamera(false);
     setStep('customize');
 
-    if (existingLocation || locationStatus === 'unsupported') return;
+    if (existingLocation) {
+      const place = await reverseGeocode(existingLocation);
+      if (!place) return;
+      setDraft(d => {
+        if (!d || d.image !== url) return d;
+        return {
+          ...d,
+          country: d.country || place.country || d.country,
+          city: d.city || place.city || d.city,
+          locationLabel: place.locationLabel || d.locationLabel,
+        };
+      });
+      return;
+    }
+
+    if (locationStatus === 'unsupported') return;
 
     const nextLocation = await fetchCurrentLocation({ silent:true });
     if (!nextLocation) return;
+
+    const place = await reverseGeocode(nextLocation);
 
     setDraft(d => {
       if (!d || d.image !== url) return d;
@@ -1371,7 +1413,9 @@ export default function StampApp() {
         ...d,
         locationLat: nextLocation.lat,
         locationLng: nextLocation.lng,
-        locationLabel: `${nextLocation.lat.toFixed(2)}, ${nextLocation.lng.toFixed(2)}`,
+        country: d.country || place?.country || d.country,
+        city: d.city || place?.city || d.city,
+        locationLabel: place?.locationLabel || `${nextLocation.lat.toFixed(2)}, ${nextLocation.lng.toFixed(2)}`,
       };
     });
   };
@@ -1413,7 +1457,7 @@ export default function StampApp() {
   const openCreateModal = () => {
     setShowCreateModal(true);
     setEditingItemId(null);
-    setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
+    setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
     setStep('customize');
     setShowCamera(true);
   };
@@ -1428,7 +1472,7 @@ export default function StampApp() {
 
   const initDraft = type => {
     setEditingItemId(null);
-    setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
+    setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
     setShowCreateModal(true);
     setStep('upload');
   };
@@ -1442,6 +1486,7 @@ export default function StampApp() {
       country: item.country || '',
       label: item.label || '',
       stampColor: item.stampColor || '#FFFDF8',
+      textColor: item.textColor || '#4A322D',
       agingIntensity: item.agingIntensity ?? 36,
       collection: item.collection || 'Destinations',
     });
@@ -1626,6 +1671,22 @@ export default function StampApp() {
                           aria-pressed={(draft.stampColor || '#FFFDF8') === c}
                           onClick={()=>setDraft(d=>({...d, stampColor:c, backgroundColor:c }))}
                           style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.stampColor || '#FFFDF8') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.stampColor || '#FFFDF8') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display:'grid', gap:12 }}>
+                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Text Color</label>
+                    <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                      {STAMP_TEXT_COLORS.map(c=>(
+                        <button
+                          key={c}
+                          type="button"
+                          aria-label={`Use ${c} text color`}
+                          aria-pressed={(draft.textColor || '#4A322D') === c}
+                          onClick={()=>setDraft(d=>({...d, textColor:c}))}
+                          style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.textColor || '#4A322D') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.textColor || '#4A322D') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
                         />
                       ))}
                     </div>
