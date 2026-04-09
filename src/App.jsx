@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const STAMP_COLORS = ['#FFFDF8','#FDE2E4','#DDEAFB','#E9E6FF','#DFF4EE','#FFF0D2','#F7D7E8','#F8ECE6'];
-const STAMP_TEXT_COLORS = ['#4A322D','#315476','#8A3D2C','#5B4F7E','#476758','#A95A3B'];
+const STAMP_TEXT_COLORS = ['#FFFFFF','#4A322D','#315476','#8A3D2C','#5B4F7E','#476758','#A95A3B','#1F3F63','#8C2146','#7A680D','#3A3A5A','#2E5B4F','#A24A16'];
+const STAMP_STROKE_COLORS = ['#FFFDFC','#F6E5D8','#D7E4F6','#D9D1EE','#EED7CF','#F7D7E8','#DCEEDD','#B8CADF','#8F766D','#4A322D'];
+const LOCATION_SETTINGS_KEY = 'stampz.locationTrackingEnabled';
 const CURRENT_YEAR = 2026;
 const COLLECTIONS = ['Destinations','Nature','Architecture','Food & Culture','Wildlife','People & Culture','Abstract'];
 const PROFILE_STORAGE_KEY = 'stampz.profile';
@@ -241,6 +243,7 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
   const stampPaper = '#FFFDFC';
   const edgeStroke = 'rgba(188, 172, 172, 0.82)';
   const textColor = item.textColor || '#4A322D';
+  const textStrokeColor = item.textStrokeColor || 'rgba(255,252,248,0.92)';
   const aging = getAgingStyle(item.agingIntensity ?? 36);
   const outerRadius = Math.max(12, w * 0.08);
   const maskImage = buildStampMask(w, h, Math.max(4.2, w * 0.032), Math.max(8.8, w * 0.064));
@@ -271,16 +274,16 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
             <div style={{ position:'absolute', inset:0, ...aging.paperOverlay, pointerEvents:'none', zIndex:1 }}/>
             <div style={{ position:'absolute', inset:0, backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`, opacity:aging.grainOpacity, mixBlendMode:'multiply', pointerEvents:'none', zIndex:1 }}/>
             <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.18)', pointerEvents:'none', zIndex:1 }}/>
-            <div style={{ position:'absolute', top:10, right:8, color:textColor, fontSize:countryFont, letterSpacing:'0.22em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', writingMode:'vertical-rl', textOrientation:'mixed', zIndex:2, textShadow:'0 1px 0 rgba(255,255,255,0.58)' }}>
+            <div style={{ position:'absolute', top:10, right:8, color:textColor, fontSize:countryFont, letterSpacing:'0.22em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', writingMode:'vertical-rl', textOrientation:'mixed', zIndex:2, textShadow:'0 1px 0 rgba(255,255,255,0.58)', WebkitTextStroke:`0.45px ${textStrokeColor}` }}>
               {item.country || 'STAMPZ'}
             </div>
           </div>
-          <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, bottom:Math.max(10, h * 0.05), display:'grid', gap:3, zIndex:2 }}>
-            <div style={{ color:textColor, fontSize:labelFont, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', textShadow:'0 1px 0 rgba(255,255,255,0.6)', minHeight:labelFont * 1.25 }}>
-              {item.label || ''}
-            </div>
-            <div style={{ color:textColor, opacity:0.76, fontSize:metaFont, letterSpacing:'0.1em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>
+          <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, bottom:Math.max(10, h * 0.05), display:'grid', gridTemplateColumns:'auto minmax(0, 1fr)', alignItems:'end', gap:8, zIndex:2 }}>
+            <div style={{ color:textColor, opacity:0.76, fontSize:metaFont, letterSpacing:'0.1em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', whiteSpace:'nowrap', WebkitTextStroke:`0.35px ${textStrokeColor}` }}>
               © {item.createdAt ? new Date(item.createdAt).getFullYear() : CURRENT_YEAR}
+            </div>
+            <div style={{ color:textColor, fontSize:labelFont, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', textShadow:'0 1px 0 rgba(255,255,255,0.6)', minHeight:labelFont * 1.25, textAlign:'right', justifySelf:'stretch', WebkitTextStroke:`0.45px ${textStrokeColor}` }}>
+              {item.label || ''}
             </div>
           </div>
         </div>
@@ -711,7 +714,7 @@ function CameraViewfinder({ type, onCapture, onCancel }) {
     setFlash(true);
     setTimeout(() => setFlash(false), 200);
     streamRef.current?.getTracks().forEach(t=>t.stop());
-    onCapture(canvas.toDataURL('image/png'));
+    onCapture(canvas.toDataURL('image/jpeg', 0.82));
   }, [ready, isPostcard, STAMP_AR, boxW, boxH, onCapture, vw, vh, boxX, boxY, cameraZoom]);
 
   useEffect(() => {
@@ -920,13 +923,13 @@ function CameraViewfinder({ type, onCapture, onCancel }) {
 
 /* ── Field helper ── */
 function Field({ label, value, onChange, placeholder, multiline }) {
-  const base = { width:'100%', padding:'9px 12px', border:'1.5px solid #F4D7E6', borderRadius:4, fontSize:16, fontFamily:'"Libre Baskerville",Georgia,serif', color:'#333', background:'white', outline:'none', boxSizing:'border-box', transition:'border-color 0.15s' };
+  const base = { width:'100%', padding:'10px 12px', border:'1.5px solid rgba(140, 182, 223, 0.24)', borderRadius:12, fontSize:16, fontFamily:'"Playfair Display",Georgia,serif', color:'#34160F', background:'rgba(255,255,255,0.96)', outline:'none', boxSizing:'border-box', transition:'border-color 0.15s, box-shadow 0.15s' };
   return (
     <div>
-      <label style={{ fontSize:10, color:'#888', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:5, fontFamily:'"Libre Baskerville",Georgia,serif' }}>{label}</label>
+      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:6, fontFamily:'"Libre Baskerville",Georgia,serif' }}>{label}</label>
       {multiline
-        ? <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{ ...base, resize:'vertical', height:80, lineHeight:1.6 }} onFocus={e=>e.target.style.borderColor='#6C63FF'} onBlur={e=>e.target.style.borderColor='#F4D7E6'}/>
-        : <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={base} onFocus={e=>e.target.style.borderColor='#6C63FF'} onBlur={e=>e.target.style.borderColor='#F4D7E6'}/>
+        ? <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{ ...base, resize:'vertical', height:80, lineHeight:1.6 }} onFocus={e=>{e.target.style.borderColor='#8cb6df';e.target.style.boxShadow='0 0 0 4px rgba(140,182,223,0.14)';}} onBlur={e=>{e.target.style.borderColor='rgba(140, 182, 223, 0.24)';e.target.style.boxShadow='none';}}/>
+        : <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={base} onFocus={e=>{e.target.style.borderColor='#8cb6df';e.target.style.boxShadow='0 0 0 4px rgba(140,182,223,0.14)';}} onBlur={e=>{e.target.style.borderColor='rgba(140, 182, 223, 0.24)';e.target.style.boxShadow='none';}}/>
       }
     </div>
   );
@@ -1000,7 +1003,7 @@ function StampImageFramer({ image, onApply, onBack }) {
     canvas.height = outH;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(imgRef.current, sx, sy, sw, sh, 0, 0, outW, outH);
-    onApply(canvas.toDataURL('image/png'));
+    onApply(canvas.toDataURL('image/jpeg', 0.86));
   };
 
   const scale = natural ? Math.max(imageBox.w / natural.w, imageBox.h / natural.h) * zoom : 1;
@@ -1065,7 +1068,7 @@ function TabButton({ id, icon, label, active, onSelect }) {
 
 function Pill({ label, active, onClick, activeColor='#6C63FF' }) {
   return (
-    <button onClick={onClick} style={{ padding:'4px 12px', borderRadius:20, fontSize:10, cursor:'pointer', border:`1px solid ${active?activeColor:'#ddd'}`, background:active?activeColor:'white', color:active?'white':'#666', fontFamily:'Georgia,serif', letterSpacing:'0.05em', transition:'all 0.15s' }}>{label}</button>
+    <button onClick={onClick} style={{ padding:'6px 12px', borderRadius:999, fontSize:10, cursor:'pointer', border:`1px solid ${active?activeColor:'rgba(160, 144, 150, 0.18)'}`, background:active?activeColor:'rgba(255,255,255,0.92)', color:active?'white':'#6f6670', fontFamily:'"Libre Baskerville",Georgia,serif', letterSpacing:'0.08em', textTransform:'uppercase', transition:'all 0.15s', boxShadow:active?'0 10px 18px rgba(95,109,136,0.08)':'none' }}>{label}</button>
   );
 }
 
@@ -1188,6 +1191,7 @@ export default function StampApp() {
   const [showCamera,  setShowCamera]  = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
+  const [stampEditorTab, setStampEditorTab] = useState('details');
   const [colFilter,   setColFilter]   = useState('All');
   const [browseFilter,setBrowseFilter]= useState('All');
   const [viewingProfile, setViewingProfile] = useState(null);
@@ -1196,10 +1200,12 @@ export default function StampApp() {
   const [toast,       setToast]       = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState(() => (navigator.geolocation ? 'idle' : 'unsupported'));
+  const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(() => readStoredJSON(LOCATION_SETTINGS_KEY, false));
   const [selectedMapItemId, setSelectedMapItemId] = useState(null);
   const [mapFocusSignal, setMapFocusSignal] = useState(0);
   const fileRef = useRef();
   const debugScrollRef = useRef(null);
+  const placeLookupRef = useRef('');
 
   useEffect(() => {
     const el = document.createElement('style');
@@ -1271,8 +1277,16 @@ export default function StampApp() {
 
   useEffect(() => {
     if (!account?.email || !collectionReady) return;
-    localStorage.setItem(collectionStorageKey(account.email), JSON.stringify(myItems));
+    try {
+      localStorage.setItem(collectionStorageKey(account.email), JSON.stringify(myItems));
+    } catch (error) {
+      console.error('[stampz-storage]', error);
+    }
   }, [account?.email, collectionReady, myItems]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(locationTrackingEnabled));
+  }, [locationTrackingEnabled]);
 
   const handleSignIn = user => {
     const savedItems = readStoredCollection(user.email);
@@ -1321,7 +1335,12 @@ export default function StampApp() {
     }
   }, []);
 
-  const fetchCurrentLocation = useCallback(({ silent = false } = {}) => {
+  const fetchCurrentLocation = useCallback(({ silent = false, force = false } = {}) => {
+    if (!force && !locationTrackingEnabled) {
+      setLocationStatus('idle');
+      if (!silent) showToast('Enable geographic tracking in settings first.');
+      return Promise.resolve(null);
+    }
     if (!navigator.geolocation) {
       setLocationStatus('unsupported');
       if (!silent) showToast('Location is unavailable on this device.');
@@ -1350,11 +1369,83 @@ export default function StampApp() {
         { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
       );
     });
-  }, []);
+  }, [locationTrackingEnabled]);
 
   const requestLocation = () => {
-    fetchCurrentLocation();
+    fetchCurrentLocation({ force:true });
   };
+
+  const handleLocationTrackingToggle = async () => {
+    const nextEnabled = !locationTrackingEnabled;
+    setLocationTrackingEnabled(nextEnabled);
+    if (!nextEnabled) {
+      setCurrentLocation(null);
+      setLocationStatus(navigator.geolocation ? 'idle' : 'unsupported');
+      return;
+    }
+    await fetchCurrentLocation({ force:true });
+  };
+
+  const resolveDraftPlace = useCallback(async baseDraft => {
+    if (!baseDraft || baseDraft.type !== 'stamp') return baseDraft;
+
+    let nextDraft = { ...baseDraft };
+    let location = Number.isFinite(nextDraft.locationLat) && Number.isFinite(nextDraft.locationLng)
+      ? { lat: nextDraft.locationLat, lng: nextDraft.locationLng }
+      : currentLocation;
+
+    if (!location && locationStatus !== 'unsupported') {
+      location = await fetchCurrentLocation({ silent:true });
+    }
+
+    if (location) {
+      nextDraft.locationLat = location.lat;
+      nextDraft.locationLng = location.lng;
+      if (!nextDraft.locationLabel || nextDraft.locationLabel === 'Unplaced') {
+        nextDraft.locationLabel = `${location.lat.toFixed(2)}, ${location.lng.toFixed(2)}`;
+      }
+
+      if (!nextDraft.country || !nextDraft.locationLabel || nextDraft.locationLabel === 'Unplaced') {
+        const place = await reverseGeocode(location);
+        if (place) {
+          nextDraft.country = nextDraft.country || place.country || nextDraft.country;
+          nextDraft.city = nextDraft.city || place.city || nextDraft.city;
+          nextDraft.locationLabel = place.locationLabel || nextDraft.locationLabel;
+        }
+      }
+    }
+
+    return nextDraft;
+  }, [currentLocation, locationStatus, fetchCurrentLocation, reverseGeocode]);
+
+  useEffect(() => {
+    if (!draft || draft.type !== 'stamp') return;
+    const hasCoords = Number.isFinite(draft.locationLat) && Number.isFinite(draft.locationLng);
+    if (!hasCoords || draft.country) return;
+
+    const lookupKey = `${draft.locationLat}:${draft.locationLng}`;
+    if (placeLookupRef.current === lookupKey) return;
+    placeLookupRef.current = lookupKey;
+
+    let alive = true;
+    reverseGeocode({ lat: draft.locationLat, lng: draft.locationLng }).then(place => {
+      if (!alive || !place) return;
+      setDraft(current => {
+        if (!current) return current;
+        if (current.country && current.country.trim()) return current;
+        return {
+          ...current,
+          country: place.country || current.country,
+          city: place.city || current.city,
+          locationLabel: place.locationLabel || current.locationLabel,
+        };
+      });
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [draft, reverseGeocode]);
 
   const handleImage = e => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -1428,14 +1519,15 @@ export default function StampApp() {
     closeCreateModal();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const resolvedDraft = await resolveDraftPlace(draft);
     const nextItem = {
-      ...draft,
+      ...resolvedDraft,
       id: editingItemId || genId(),
-      createdAt: draft.createdAt || Date.now(),
-      locationLat: draft.locationLat ?? currentLocation?.lat ?? null,
-      locationLng: draft.locationLng ?? currentLocation?.lng ?? null,
-      locationLabel: draft.locationLabel || (currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced'),
+      createdAt: resolvedDraft.createdAt || Date.now(),
+      locationLat: resolvedDraft.locationLat ?? currentLocation?.lat ?? null,
+      locationLng: resolvedDraft.locationLng ?? currentLocation?.lng ?? null,
+      locationLabel: resolvedDraft.locationLabel || (currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced'),
     };
     if (editingItemId) {
       setMyItems(items => items.map(item => item.id === editingItemId ? nextItem : item));
@@ -1457,7 +1549,8 @@ export default function StampApp() {
   const openCreateModal = () => {
     setShowCreateModal(true);
     setEditingItemId(null);
-    setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
+    setStampEditorTab('details');
+    setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', textStrokeColor:'#FFFDFC', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'', locationLat: currentLocation?.lat ?? null, locationLng: currentLocation?.lng ?? null, locationLabel: currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced' });
     setStep('customize');
     setShowCamera(true);
   };
@@ -1466,13 +1559,15 @@ export default function StampApp() {
     setShowCreateModal(false);
     setShowCamera(false);
     setEditingItemId(null);
+    setStampEditorTab('details');
     setDraft(null);
     setStep('type');
   };
 
   const initDraft = type => {
     setEditingItemId(null);
-    setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'' });
+    setStampEditorTab('details');
+    setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', textStrokeColor:'#FFFDFC', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'', locationLat: currentLocation?.lat ?? null, locationLng: currentLocation?.lng ?? null, locationLabel: currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced' });
     setShowCreateModal(true);
     setStep('upload');
   };
@@ -1480,6 +1575,7 @@ export default function StampApp() {
   const startEditingItem = item => {
     setLightbox(null);
     setEditingItemId(item.id);
+    setStampEditorTab('details');
     setDraft({
       ...item,
       note: item.note || '',
@@ -1487,6 +1583,7 @@ export default function StampApp() {
       label: item.label || '',
       stampColor: item.stampColor || '#FFFDF8',
       textColor: item.textColor || '#4A322D',
+      textStrokeColor: item.textStrokeColor || '#FFFDFC',
       agingIntensity: item.agingIntensity ?? 36,
       collection: item.collection || 'Destinations',
     });
@@ -1652,82 +1749,140 @@ export default function StampApp() {
             {/* Step 4: Customize */}
             {step==='customize' && draft && (
               draft.type==='stamp' ? (
-                <div style={{ maxWidth:520, margin:'0 auto', display:'flex', flexDirection:'column', gap:18 }}>
+                <div style={{ maxWidth:640, margin:'0 auto', display:'flex', flexDirection:'column', gap:18, minHeight:'calc(100dvh - 40px)' }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
                     <button onClick={()=>setShowCamera(true)} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#B33A0B', cursor:'pointer', fontSize:18, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>← Edit Stamp</button>
                     <button onClick={handleSave} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#B33A0B', cursor:'pointer', fontSize:18, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>Done</button>
                   </div>
 
-                  <EditorStampPreview item={draft} onClick={()=>setLightbox(draft)}/>
+                  <div style={{ flex:1, display:'grid', alignItems:'center' }}>
+                    <EditorStampPreview item={draft} onClick={()=>setLightbox(draft)}/>
+                  </div>
 
-                  <div style={{ display:'grid', gap:12 }}>
-                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Background Color</label>
-                    <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-                      {STAMP_COLORS.map(c=>(
+                  <div style={{ marginTop:'auto', position:'sticky', bottom:'calc(8px + env(safe-area-inset-bottom))', background:'rgba(255,251,248,0.96)', border:'1px solid rgba(223,216,218,0.9)', borderRadius:28, padding:'16px 14px 18px', boxShadow:'0 18px 36px rgba(95,109,136,0.14)', backdropFilter:'blur(18px)', display:'grid', gap:14 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:8 }}>
+                      {[
+                        { id:'details', label:'Details' },
+                        { id:'color', label:'Colors' },
+                        { id:'style', label:'Style' },
+                        { id:'notes', label:'Notes' },
+                      ].map(tabItem=>(
                         <button
-                          key={c}
+                          key={tabItem.id}
                           type="button"
-                          aria-label={`Use ${c} stamp color`}
-                          aria-pressed={(draft.stampColor || '#FFFDF8') === c}
-                          onClick={()=>setDraft(d=>({...d, stampColor:c, backgroundColor:c }))}
-                          style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.stampColor || '#FFFDF8') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.stampColor || '#FFFDF8') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
-                        />
+                          onClick={()=>setStampEditorTab(tabItem.id)}
+                          style={{
+                            minHeight:40,
+                            border:'none',
+                            borderRadius:14,
+                            background: stampEditorTab===tabItem.id ? 'rgba(140, 182, 223, 0.18)' : 'transparent',
+                            color: stampEditorTab===tabItem.id ? '#315476' : '#7d6d72',
+                            fontFamily:'"Libre Baskerville",Georgia,serif',
+                            fontSize:10,
+                            letterSpacing:'0.08em',
+                            textTransform:'uppercase',
+                            cursor:'pointer'
+                          }}
+                        >
+                          {tabItem.label}
+                        </button>
                       ))}
                     </div>
-                  </div>
 
-                  <div style={{ display:'grid', gap:12 }}>
-                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Text Color</label>
-                    <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-                      {STAMP_TEXT_COLORS.map(c=>(
-                        <button
-                          key={c}
-                          type="button"
-                          aria-label={`Use ${c} text color`}
-                          aria-pressed={(draft.textColor || '#4A322D') === c}
-                          onClick={()=>setDraft(d=>({...d, textColor:c}))}
-                          style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.textColor || '#4A322D') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.textColor || '#4A322D') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                    {stampEditorTab === 'details' && (
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:12 }}>
+                        <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
+                          <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Stamp Name</label>
+                          <input value={draft.label} onChange={e=>setDraft(d=>({...d,label:e.target.value}))} placeholder="Freedom Flags" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
+                        </div>
+                        <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
+                          <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Origin</label>
+                          <input value={draft.country} onChange={e=>setDraft(d=>({...d,country:e.target.value.toUpperCase()}))} placeholder="CANADA" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
+                        </div>
+                        <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)', gridColumn:'1 / -1' }}>
+                          <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Archived</label>
+                          <div style={{ fontSize:16, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif' }}>{new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>
+                        </div>
+                      </div>
+                    )}
 
-                  <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:18, padding:'18px 18px 22px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)', display:'grid', gap:12 }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
-                      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Aging Intensity</label>
-                      <span style={{ color:'#B33A0B', fontSize:16, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>{draft.agingIntensity ?? 36}%</span>
-                    </div>
-                    <input type="range" min="0" max="100" step="1" value={draft.agingIntensity ?? 36} onChange={e=>setDraft(d=>({...d, agingIntensity:Number(e.target.value)}))} style={{ width:'100%', accentColor:'#B33A0B' }}/>
-                  </div>
+                    {stampEditorTab === 'color' && (
+                      <div style={{ display:'grid', gap:14 }}>
+                        <div style={{ display:'grid', gap:10 }}>
+                          <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Main Color</label>
+                          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                            {STAMP_COLORS.map(c=>(
+                              <button
+                                key={c}
+                                type="button"
+                                aria-label={`Use ${c} stamp color`}
+                                aria-pressed={(draft.stampColor || '#FFFDF8') === c}
+                                onClick={()=>setDraft(d=>({...d, stampColor:c, backgroundColor:c }))}
+                                style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.stampColor || '#FFFDF8') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.stampColor || '#FFFDF8') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ display:'grid', gap:10 }}>
+                          <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Text Color</label>
+                          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                            {STAMP_TEXT_COLORS.map(c=>(
+                              <button
+                                key={c}
+                                type="button"
+                                aria-label={`Use ${c} text color`}
+                                aria-pressed={(draft.textColor || '#4A322D') === c}
+                                onClick={()=>setDraft(d=>({...d, textColor:c}))}
+                                style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.textColor || '#4A322D') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.textColor || '#4A322D') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ display:'grid', gap:10 }}>
+                          <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Text Stroke Color</label>
+                          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                            {STAMP_STROKE_COLORS.map(c=>(
+                              <button
+                                key={c}
+                                type="button"
+                                aria-label={`Use ${c} text stroke color`}
+                                aria-pressed={(draft.textStrokeColor || '#FFFDFC') === c}
+                                onClick={()=>setDraft(d=>({...d, textStrokeColor:c}))}
+                                style={{ width:40, height:40, minWidth:40, minHeight:40, flex:'0 0 40px', borderRadius:'50%', background:c, border:`3px solid ${(draft.textStrokeColor || '#FFFDFC') === c ? '#FFFFFF' : 'transparent'}`, boxShadow:(draft.textStrokeColor || '#FFFDFC') === c ? '0 0 0 2px #B33A0B, 0 8px 18px rgba(179,58,11,0.18)' : '0 4px 10px rgba(95,109,136,0.12)', cursor:'pointer', padding:0 }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:14 }}>
-                    <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
-                      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Stamp Name</label>
-                      <input value={draft.label} onChange={e=>setDraft(d=>({...d,label:e.target.value}))} placeholder="Freedom Flags" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
-                    </div>
-                    <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
-                      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Origin</label>
-                      <input value={draft.country} onChange={e=>setDraft(d=>({...d,country:e.target.value.toUpperCase()}))} placeholder="CANADA" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
-                    </div>
-                    <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
-                      <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Archived</label>
-                      <div style={{ fontSize:16, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif' }}>{new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>
-                    </div>
-                  </div>
+                    {stampEditorTab === 'style' && (
+                      <div style={{ display:'grid', gap:14 }}>
+                        <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:18, padding:'18px 18px 22px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)', display:'grid', gap:12 }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                            <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Aging Intensity</label>
+                            <span style={{ color:'#B33A0B', fontSize:16, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>{draft.agingIntensity ?? 36}%</span>
+                          </div>
+                          <input type="range" min="0" max="100" step="1" value={draft.agingIntensity ?? 36} onChange={e=>setDraft(d=>({...d, agingIntensity:Number(e.target.value)}))} style={{ width:'100%', accentColor:'#B33A0B' }}/>
+                        </div>
+                        <div>
+                          <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:8, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Collection</label>
+                          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                            {COLLECTIONS.map(c=><Pill key={c} label={c} active={draft.collection===c} onClick={()=>setDraft(d=>({...d,collection:c}))} activeColor="#B33A0B"/>)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                  <div style={{ background:'linear-gradient(180deg,#FFD0D0,#FFC8C8)', borderRadius:18, padding:'18px 18px 16px', boxShadow:'0 14px 30px rgba(215,163,163,0.18)' }}>
-                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:12, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Curator&apos;s Note</label>
-                    <textarea value={draft.note || ''} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} placeholder="Describe the atmosphere of the collection..." style={{ width:'100%', minHeight:92, border:'none', borderBottom:'1px solid rgba(154,109,104,0.25)', background:'transparent', resize:'vertical', fontSize:16, lineHeight:1.55, color:'#5A626E', fontFamily:'"Playfair Display",Georgia,serif', fontStyle:'italic', outline:'none' }}/>
-                  </div>
+                    {stampEditorTab === 'notes' && (
+                      <div style={{ background:'linear-gradient(180deg,#FFD0D0,#FFC8C8)', borderRadius:18, padding:'18px 18px 16px', boxShadow:'0 14px 30px rgba(215,163,163,0.18)' }}>
+                        <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:12, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Curator&apos;s Note</label>
+                        <textarea value={draft.note || ''} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} placeholder="Describe the atmosphere of the collection..." style={{ width:'100%', minHeight:92, border:'none', borderBottom:'1px solid rgba(154,109,104,0.25)', background:'transparent', resize:'vertical', fontSize:16, lineHeight:1.55, color:'#5A626E', fontFamily:'"Playfair Display",Georgia,serif', fontStyle:'italic', outline:'none' }}/>
+                      </div>
+                    )}
 
-                  <div>
-                    <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:8, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Collection</label>
-                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                      {COLLECTIONS.map(c=><Pill key={c} label={c} active={draft.collection===c} onClick={()=>setDraft(d=>({...d,collection:c}))} activeColor="#B33A0B"/>)}
-                    </div>
+                    <button onClick={closeCreateModal} style={{ alignSelf:'center', background:'none', border:'none', color:'#9A6D68', cursor:'pointer', fontSize:11, fontFamily:'Georgia,serif', letterSpacing:'0.08em' }}>Cancel</button>
                   </div>
-
-                  <button onClick={closeCreateModal} style={{ alignSelf:'center', background:'none', border:'none', color:'#9A6D68', cursor:'pointer', fontSize:11, fontFamily:'Georgia,serif', letterSpacing:'0.08em' }}>Cancel</button>
                 </div>
               ) : (
                 <div style={{ display:'flex', gap:24, flexWrap:'wrap', alignItems:'flex-start', justifyContent:'center' }}>
@@ -1789,6 +1944,72 @@ export default function StampApp() {
               <button onClick={openCreateModal} style={{ width:'min(100%, 320px)', padding:'17px 20px', border:'none', borderRadius:13, background:'#B64512', color:'white', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700, boxShadow:'0 18px 34px rgba(199,50,18,0.18)' }}>Capture New Stamp</button>
             </section>
 
+            <section style={{ marginBottom:24, background:'rgba(255,255,255,0.92)', border:'1px solid rgba(223,216,218,0.9)', borderRadius:22, padding:'18px 18px 20px', boxShadow:'0 14px 30px rgba(95,109,136,0.08)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+                <div style={{ width:56, height:56, borderRadius:'50%', background:'linear-gradient(135deg, #8cb6df, #f3c9bf)', display:'grid', placeItems:'center', color:'#fff', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, fontWeight:700 }}>
+                  {account.name?.charAt(0)?.toUpperCase() || 'S'}
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <p style={{ margin:'0 0 4px', color:'#A82412', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Profile</p>
+                  <h3 style={{ margin:'0 0 4px', color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, lineHeight:1.05 }}>{account.name}</h3>
+                  <p style={{ margin:0, color:'#6E6B78', fontSize:12, lineHeight:1.5, overflow:'hidden', textOverflow:'ellipsis' }}>{account.email}</p>
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                <button onClick={openCreateModal} style={{ minHeight:40, padding:'10px 14px', border:'none', borderRadius:999, background:'rgba(140, 182, 223, 0.16)', color:'#315476', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase' }}>New Stamp</button>
+                <button onClick={handleSignOut} style={{ minHeight:40, padding:'10px 14px', border:'1px solid rgba(182,69,18,0.18)', borderRadius:999, background:'white', color:'#B64512', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase' }}>Sign Out</button>
+              </div>
+            </section>
+
+            <section style={{ marginBottom:24, background:'rgba(255,255,255,0.92)', border:'1px solid rgba(223,216,218,0.9)', borderRadius:22, padding:'18px 18px 20px', boxShadow:'0 14px 30px rgba(95,109,136,0.08)' }}>
+              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
+                <div>
+                  <p style={{ margin:'0 0 6px', color:'#A82412', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>Settings</p>
+                  <h3 style={{ margin:'0 0 6px', color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, lineHeight:1.05 }}>Geographic Tracking</h3>
+                  <p style={{ margin:0, color:'#6E6B78', fontSize:12, lineHeight:1.6 }}>
+                    Turn this on to detect your location while capturing so new stamps can auto-fill origin and pin directly onto your map.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLocationTrackingToggle}
+                  aria-pressed={locationTrackingEnabled}
+                  style={{
+                    minHeight:0,
+                    width:68,
+                    height:38,
+                    border:'none',
+                    borderRadius:999,
+                    padding:4,
+                    background: locationTrackingEnabled ? '#8cb6df' : '#e5dede',
+                    cursor:'pointer',
+                    position:'relative',
+                    flex:'0 0 auto',
+                    transition:'background 0.2s ease',
+                  }}
+                >
+                  <span
+                    style={{
+                      position:'absolute',
+                      top:4,
+                      left: locationTrackingEnabled ? 34 : 4,
+                      width:30,
+                      height:30,
+                      borderRadius:'50%',
+                      background:'#fff',
+                      boxShadow:'0 8px 16px rgba(0,0,0,0.12)',
+                      transition:'left 0.2s ease',
+                    }}
+                  />
+                </button>
+              </div>
+              <div style={{ marginTop:12, color:'#7A4E4A', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif' }}>
+                {locationTrackingEnabled
+                  ? (locationStatus === 'ready' ? 'Tracking enabled' : 'Tracking enabled • awaiting location')
+                  : 'Tracking disabled'}
+              </div>
+            </section>
+
             <section>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:20 }}>
                 <h2 style={{ margin:0, fontFamily:'"Playfair Display",Georgia,serif', color:'#4A1019', fontSize:28, lineHeight:1.05 }}>Stamp<br/>Collection</h2>
@@ -1819,7 +2040,7 @@ export default function StampApp() {
                         </div>
                         <div style={{ textAlign:'left' }}>
                           <p style={{ margin:'0 0 6px', color:'#A82412', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase' }}>Official Catalogue Entry</p>
-                          <p style={{ margin:'0 0 4px', color:'#4A1019', fontFamily:'"Playfair Display",Georgia,serif', fontSize:22, fontWeight:700, lineHeight:1.05 }}>{item.label||item.destination||'Untitled stamp'}</p>
+                          <p style={{ margin:'0 0 4px', color:'#4A1019', fontFamily:'"Playfair Display",Georgia,serif', fontSize:22, fontWeight:700, lineHeight:1.05 }}>{item.label||item.destination||'Stamp Name'}</p>
                           <p style={{ margin:0, color:'#7A4E4A', fontSize:12 }}>{item.locationLabel || item.country || item.collection}</p>
                         </div>
                       </button>
@@ -1862,9 +2083,11 @@ export default function StampApp() {
               </div>
 
               <div style={{ display:'grid', gap:16, marginBottom:16 }}>
-                {locationStatus !== 'ready' && (
+                {(locationStatus !== 'ready' || !locationTrackingEnabled) && (
                   <div style={{ padding:'14px 16px', borderRadius:20, background:'rgba(255,255,255,0.84)', border:'1px solid rgba(214,203,206,0.86)', color:'#7A4E4A', fontSize:12, lineHeight:1.65 }}>
-                    Turn on location to pin each new stamp automatically. You can still capture now and start building your archive.
+                    {locationTrackingEnabled
+                      ? 'Turn on location access to pin each new stamp automatically. You can still capture now and start building your archive.'
+                      : 'Enable geographic tracking in settings to auto-fill origin and pin each new stamp to your map.'}
                   </div>
                 )}
 
@@ -1915,7 +2138,7 @@ export default function StampApp() {
                         </div>
                         <div>
                           <p style={{ margin:'0 0 4px', color:'#A82412', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase' }}>{item.locationLabel || item.collection}</p>
-                          <p style={{ margin:0, color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:16, lineHeight:1.1 }}>{item.label || item.destination || 'Untitled stamp'}</p>
+                          <p style={{ margin:0, color:'#24160F', fontFamily:'"Playfair Display",Georgia,serif', fontSize:16, lineHeight:1.1 }}>{item.label || item.destination || 'Stamp Name'}</p>
                         </div>
                       </button>
                     ))}
@@ -1983,7 +2206,7 @@ export default function StampApp() {
                             {storyProfile.name.charAt(0)}
                           </span>
                         </span>
-                        <span style={{ maxWidth:66, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontSize:10, fontFamily:'system-ui, sans-serif', color:'#4A1019' }}>@{author}</span>
+                        <span style={{ maxWidth:66, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontSize:10, fontFamily:'"Libre Baskerville",Georgia,serif', color:'#4A1019' }}>@{author}</span>
                       </button>
                     );
                   })}
@@ -2005,7 +2228,7 @@ export default function StampApp() {
                               </span>
                             </span>
                             <span>
-                              <strong style={{ display:'block', color:'#111', fontFamily:'system-ui, sans-serif', fontSize:13, lineHeight:1.2 }}>@{stamp.author}</strong>
+                              <strong style={{ display:'block', color:'#111', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:13, lineHeight:1.2 }}>@{stamp.author}</strong>
                               <span style={{ display:'block', color:'#9B7BAE', fontSize:10, marginTop:2 }}>{stampProfile.location}</span>
                             </span>
                           </button>
@@ -2020,7 +2243,7 @@ export default function StampApp() {
                             <button onClick={()=>{ if(myItems.find(i=>i.id===stamp.id)){showToast('Already in collection');return;} setMyItems(p=>[{...stamp,id:genId(),createdAt:Date.now()},...p]);showToast('✉️ Saved to collection!'); }} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#111', cursor:'pointer', fontSize:22, lineHeight:1 }}>＋</button>
                             <span style={{ marginLeft:'auto', color:'#9B7BAE', fontSize:11 }}>{stamp.collection}</span>
                           </div>
-                          <p style={{ margin:'0 0 6px', color:'#111', fontFamily:'system-ui, sans-serif', fontSize:13, fontWeight:700 }}>{(stamp.likes+(isLiked?1:0)).toLocaleString()} likes</p>
+                          <p style={{ margin:'0 0 6px', color:'#111', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:13, fontWeight:700 }}>{(stamp.likes+(isLiked?1:0)).toLocaleString()} likes</p>
                           <p style={{ margin:0, color:'#4A1019', fontSize:12, lineHeight:1.55 }}><strong>@{stamp.author}</strong> {stamp.label || stamp.country || 'New stamp drop'} from the {stamp.collection} collection.</p>
                         </div>
                       </article>
@@ -2049,7 +2272,7 @@ export default function StampApp() {
               {lightbox.type==='stamp'?<EditorStampPreview item={lightbox}/>:<PostcardView item={lightbox} scale={0.82}/>}
             </div>
             <div style={{ textAlign:'center' }}>
-              <p style={{ margin:'0 0 4px', fontFamily:'"Playfair Display",Georgia,serif', color:'#6C63FF', fontSize:20, fontStyle:'italic' }}>{lightbox.label||lightbox.destination||'Untitled'}</p>
+              <p style={{ margin:'0 0 4px', fontFamily:'"Playfair Display",Georgia,serif', color:'#6C63FF', fontSize:20, fontStyle:'italic' }}>{lightbox.label||lightbox.destination||'Stamp Name'}</p>
               <p style={{ margin:0, fontSize:11, color:'#9B7BAE', fontFamily:'Georgia,serif' }}>Collection: {lightbox.collection}</p>
               {lightbox.author && <p style={{ margin:'4px 0 0', fontSize:10, color:'#bbb', fontFamily:'Georgia,serif' }}>by @{lightbox.author}</p>}
             </div>
