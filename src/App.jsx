@@ -44,6 +44,7 @@ const COMMUNITY_PROFILES = {
 const AUTH_HERO_STAMP = {
   type:'stamp',
   country:'CANADA',
+  origin:'Vancouver, Canada',
   label:'North Shore Morning',
   note:'Sea glass skies and a quiet harbor.',
   stampColor:'#DDEAFB',
@@ -90,6 +91,32 @@ function getCommunityProfile(author) {
     location: 'Stampz community',
     bio: 'Collector profile from the Stampz community.',
     color: '#7DA9D9',
+  };
+}
+
+function createDraft(type, currentLocation = null) {
+  return {
+    type,
+    image:null,
+    imageRaw:null,
+    country:'',
+    origin: currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : '',
+    label:'',
+    note:'',
+    accentColor:'#6C63FF',
+    stampColor:'#FFFDF8',
+    textColor:'#4A322D',
+    textStrokeColor:'#FFFDFC',
+    agingIntensity:36,
+    collection:'Destinations',
+    destination:'',
+    message:'',
+    from:'',
+    recipient:'',
+    gradient:'',
+    locationLat: currentLocation?.lat ?? null,
+    locationLng: currentLocation?.lng ?? null,
+    locationLabel: currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced',
   };
 }
 
@@ -275,7 +302,7 @@ function StampView({ item, size='md', onClick, showMeta=false }) {
             <div style={{ position:'absolute', inset:0, backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`, opacity:aging.grainOpacity, mixBlendMode:'multiply', pointerEvents:'none', zIndex:1 }}/>
             <div style={{ position:'absolute', inset:0, boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.18)', pointerEvents:'none', zIndex:1 }}/>
             <div style={{ position:'absolute', top:10, right:8, color:textColor, fontSize:countryFont, letterSpacing:'0.22em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', writingMode:'vertical-rl', textOrientation:'mixed', zIndex:2, textShadow:'0 1px 0 rgba(255,255,255,0.58)', WebkitTextStroke:`0.45px ${textStrokeColor}` }}>
-              {item.country || 'STAMPZ'}
+              {item.country || item.origin || 'STAMPZ'}
             </div>
           </div>
           <div style={{ position:'absolute', left:photoInsetX, right:photoInsetX, bottom:Math.max(10, h * 0.05), display:'grid', gridTemplateColumns:'auto minmax(0, 1fr)', alignItems:'end', gap:8, zIndex:2 }}>
@@ -316,6 +343,7 @@ function EditorStampPreview({ item, onClick }) {
 function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onRequestLocation, focusSignal }) {
   const mapFrameRef = useRef(null);
   const dragRef = useRef(null);
+  const pinchRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const placedItems = items.filter(item=>Number.isFinite(item.locationLat) && Number.isFinite(item.locationLng));
   const initialCenter = currentLocation
@@ -388,6 +416,7 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
   }
 
   const handlePointerDown = event => {
+    if (event.pointerType === 'touch') return;
     if (event.target instanceof Element && event.target.closest('button')) return;
     if (!mapFrameRef.current) return;
     const centerWorldPoint = latLngToWorld(mapView.centerLat, mapView.centerLng, mapView.zoom);
@@ -403,6 +432,7 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
   };
 
   const handlePointerMove = event => {
+    if (event.pointerType === 'touch') return;
     if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
     const dx = event.clientX - dragRef.current.startX;
     const dy = event.clientY - dragRef.current.startY;
@@ -419,10 +449,83 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
   };
 
   const handlePointerEnd = event => {
+    if (event.pointerType === 'touch') return;
     if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
     mapFrameRef.current?.releasePointerCapture?.(event.pointerId);
     dragRef.current = null;
     setIsDragging(false);
+  };
+
+  const getTouchDistance = touches => {
+    if (touches.length < 2) return 0;
+    const [a, b] = touches;
+    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  };
+
+  const handleTouchStart = event => {
+    if (event.target instanceof Element && event.target.closest('button')) return;
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const centerWorldPoint = latLngToWorld(mapView.centerLat, mapView.centerLng, mapView.zoom);
+      dragRef.current = {
+        touchId: touch.identifier,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        centerWorldX: centerWorldPoint.x,
+        centerWorldY: centerWorldPoint.y,
+      };
+      pinchRef.current = null;
+      setIsDragging(true);
+      return;
+    }
+
+    if (event.touches.length === 2) {
+      pinchRef.current = {
+        distance: getTouchDistance(event.touches),
+        zoom: mapView.zoom,
+      };
+      dragRef.current = null;
+      setIsDragging(false);
+    }
+  };
+
+  const handleTouchMove = event => {
+    if (event.touches.length === 2 && pinchRef.current) {
+      event.preventDefault();
+      const nextDistance = getTouchDistance(event.touches);
+      const zoomDelta = Math.log2(Math.max(nextDistance, 1) / Math.max(pinchRef.current.distance, 1));
+      const nextZoom = clamp(Math.round((pinchRef.current.zoom + zoomDelta) * 2) / 2, 1, 12);
+      if (nextZoom !== mapView.zoom) {
+        setMapView(view => ({ ...view, zoom: nextZoom }));
+      }
+      return;
+    }
+
+    if (event.touches.length === 1 && dragRef.current) {
+      const touch = event.touches[0];
+      if (touch.identifier !== dragRef.current.touchId) return;
+      event.preventDefault();
+      const dx = touch.clientX - dragRef.current.startX;
+      const dy = touch.clientY - dragRef.current.startY;
+      const next = worldToLatLng(
+        dragRef.current.centerWorldX - dx,
+        dragRef.current.centerWorldY - dy,
+        mapView.zoom
+      );
+      setMapView(view => ({
+        ...view,
+        centerLat: next.lat,
+        centerLng: next.lng,
+      }));
+    }
+  };
+
+  const handleTouchEnd = event => {
+    if (event.touches.length < 2) pinchRef.current = null;
+    if (event.touches.length === 0) {
+      dragRef.current = null;
+      setIsDragging(false);
+    }
   };
 
   return (
@@ -432,6 +535,10 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerEnd}
       onPointerCancel={handlePointerEnd}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
       style={{ position:'relative', borderRadius:28, overflow:'hidden', background:'#d4d4d6', border:'1px solid rgba(173, 168, 169, 0.42)', boxShadow:'0 18px 42px rgba(95, 109, 136, 0.12)', minHeight:520, cursor:isDragging ? 'grabbing' : 'grab', touchAction:'none' }}
     >
       <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg, rgba(255,255,255,0.34), rgba(120,126,141,0.08))', pointerEvents:'none', zIndex:1 }}/>
@@ -518,7 +625,7 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
         <button
           type="button"
           aria-label={currentLocation ? 'Center on my location' : 'Enable location'}
-          onClick={()=>{
+          onClick={async ()=>{
             if (currentLocation) {
               setMapView(view=>({
                 ...view,
@@ -528,11 +635,18 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
               }));
               return;
             }
-            onRequestLocation?.();
+            const nextLocation = await onRequestLocation?.();
+            if (!nextLocation) return;
+            setMapView(view=>({
+              ...view,
+              centerLat: nextLocation.lat,
+              centerLng: nextLocation.lng,
+              zoom: Math.max(view.zoom, 7),
+            }));
           }}
           style={{ minHeight:0, width:54, height:54, borderRadius:18, border:'none', background:'#B64512', color:'white', cursor:'pointer', fontSize:22, boxShadow:'0 12px 24px rgba(182,69,18,0.22)' }}
         >
-          ◎
+          ⌖
         </button>
       </div>
       <div style={{ position:'absolute', left:14, bottom:12, zIndex:2, color:'rgba(61,53,56,0.68)', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:'"Libre Baskerville",Georgia,serif', pointerEvents:'none' }}>
@@ -1059,9 +1173,8 @@ function StampImageFramer({ image, onApply, onBack }) {
 
 function TabButton({ id, icon, label, active, onSelect }) {
   return (
-    <button onClick={()=>onSelect(id)} className={active ? 'is-active' : ''}>
+    <button onClick={()=>onSelect(id)} className={active ? 'is-active' : ''} aria-label={label} title={label}>
       <span>{icon}</span>
-      {label}
     </button>
   );
 }
@@ -1329,7 +1442,7 @@ export default function StampApp() {
       const city = address.city || address.town || address.village || address.hamlet || address.county || '';
       const country = address.country || '';
       const locationLabel = [city, country].filter(Boolean).join(', ') || data.display_name || '';
-      return { city, country, locationLabel };
+      return { city, country, origin: locationLabel, locationLabel };
     } catch {
       return null;
     }
@@ -1372,7 +1485,7 @@ export default function StampApp() {
   }, [locationTrackingEnabled]);
 
   const requestLocation = () => {
-    fetchCurrentLocation({ force:true });
+    return fetchCurrentLocation({ force:true });
   };
 
   const handleLocationTrackingToggle = async () => {
@@ -1409,6 +1522,7 @@ export default function StampApp() {
         const place = await reverseGeocode(location);
         if (place) {
           nextDraft.country = nextDraft.country || place.country || nextDraft.country;
+          nextDraft.origin = nextDraft.origin || place.origin || place.locationLabel || nextDraft.origin;
           nextDraft.city = nextDraft.city || place.city || nextDraft.city;
           nextDraft.locationLabel = place.locationLabel || nextDraft.locationLabel;
         }
@@ -1421,7 +1535,7 @@ export default function StampApp() {
   useEffect(() => {
     if (!draft || draft.type !== 'stamp') return;
     const hasCoords = Number.isFinite(draft.locationLat) && Number.isFinite(draft.locationLng);
-    if (!hasCoords || draft.country) return;
+    if (!hasCoords || (draft.country && draft.origin)) return;
 
     const lookupKey = `${draft.locationLat}:${draft.locationLng}`;
     if (placeLookupRef.current === lookupKey) return;
@@ -1436,6 +1550,7 @@ export default function StampApp() {
         return {
           ...current,
           country: place.country || current.country,
+          origin: current.origin || place.origin || place.locationLabel || current.origin,
           city: place.city || current.city,
           locationLabel: place.locationLabel || current.locationLabel,
         };
@@ -1472,6 +1587,7 @@ export default function StampApp() {
       locationLat: existingLocation?.lat ?? d?.locationLat ?? null,
       locationLng: existingLocation?.lng ?? d?.locationLng ?? null,
       locationLabel: existingLabel || d?.locationLabel || 'Unplaced',
+      origin: d?.origin || existingLabel || '',
     }));
     setShowCamera(false);
     setStep('customize');
@@ -1484,6 +1600,7 @@ export default function StampApp() {
         return {
           ...d,
           country: d.country || place.country || d.country,
+          origin: d.origin || place.origin || place.locationLabel || d.origin,
           city: d.city || place.city || d.city,
           locationLabel: place.locationLabel || d.locationLabel,
         };
@@ -1505,6 +1622,7 @@ export default function StampApp() {
         locationLat: nextLocation.lat,
         locationLng: nextLocation.lng,
         country: d.country || place?.country || d.country,
+        origin: d.origin || place?.origin || place?.locationLabel || d.origin,
         city: d.city || place?.city || d.city,
         locationLabel: place?.locationLabel || `${nextLocation.lat.toFixed(2)}, ${nextLocation.lng.toFixed(2)}`,
       };
@@ -1550,9 +1668,12 @@ export default function StampApp() {
     setShowCreateModal(true);
     setEditingItemId(null);
     setStampEditorTab('details');
-    setDraft({ type:'stamp', image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', textStrokeColor:'#FFFDFC', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'', locationLat: currentLocation?.lat ?? null, locationLng: currentLocation?.lng ?? null, locationLabel: currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced' });
+    setDraft(createDraft('stamp', currentLocation));
     setStep('customize');
     setShowCamera(true);
+    if (locationTrackingEnabled && !currentLocation) {
+      fetchCurrentLocation({ silent:true, force:true });
+    }
   };
 
   const closeCreateModal = () => {
@@ -1567,9 +1688,12 @@ export default function StampApp() {
   const initDraft = type => {
     setEditingItemId(null);
     setStampEditorTab('details');
-    setDraft({ type, image:null, imageRaw:null, country:'', label:'', note:'', accentColor:'#6C63FF', stampColor:'#FFFDF8', textColor:'#4A322D', textStrokeColor:'#FFFDFC', agingIntensity:36, collection:'Destinations', destination:'', message:'', from:'', recipient:'', gradient:'', locationLat: currentLocation?.lat ?? null, locationLng: currentLocation?.lng ?? null, locationLabel: currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced' });
+    setDraft(createDraft(type, currentLocation));
     setShowCreateModal(true);
     setStep('upload');
+    if (locationTrackingEnabled && !currentLocation) {
+      fetchCurrentLocation({ silent:true, force:true });
+    }
   };
 
   const startEditingItem = item => {
@@ -1580,6 +1704,7 @@ export default function StampApp() {
       ...item,
       note: item.note || '',
       country: item.country || '',
+      origin: item.origin || item.locationLabel || '',
       label: item.label || '',
       stampColor: item.stampColor || '#FFFDF8',
       textColor: item.textColor || '#4A322D',
@@ -1589,6 +1714,42 @@ export default function StampApp() {
     });
     setShowCreateModal(true);
     setStep('customize');
+  };
+
+  const handleCreateBack = () => {
+    if (showCamera) {
+      setShowCamera(false);
+      if (draft?.image) setStep('customize');
+      else if (draft?.imageRaw && draft?.type === 'stamp') setStep('frame');
+      else if (draft) setStep('upload');
+      else closeCreateModal();
+      return;
+    }
+
+    if (step === 'customize') {
+      if (draft?.type === 'stamp') {
+        setShowCamera(true);
+        return;
+      }
+      if (draft?.imageRaw && draft?.type === 'stamp') {
+        setStep('frame');
+        return;
+      }
+      setStep('upload');
+      return;
+    }
+
+    if (step === 'frame') {
+      setStep('upload');
+      return;
+    }
+
+    if (step === 'upload') {
+      setStep('type');
+      return;
+    }
+
+    closeCreateModal();
   };
 
   const handleTabSelect = id => {
@@ -1650,21 +1811,29 @@ export default function StampApp() {
         {/* ══ CREATE MODAL */}
         {showCreateModal && (
           <div className="create-modal" role="dialog" aria-modal="true" aria-label="Create a Stampz item" onClick={closeCreateModal}>
-            <div className="create-modal__panel" onClick={e=>e.stopPropagation()}>
-              <button className="create-modal__close" onClick={closeCreateModal} aria-label="Close create modal">×</button>
-            {/* Progress */}
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:28, flexWrap:'wrap' }}>
-              {[{s:'type',l:'Choose Type'},{s:'upload',l:'Add Photo'},{s:'frame',l:'Frame'},{s:'customize',l:'Customize'}].map(({s,l},i)=>{
-                const steps=['type','upload','frame','customize'];
-                const past=steps.indexOf(step)>i, active=step===s;
-                return (
-                  <div key={s} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <div style={{ width:26, height:26, borderRadius:'50%', background:active?'#FF7AA8':past?'#6C63FF':'#E8DFFF', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'white', fontWeight:700 }}>{i+1}</div>
-                    <span style={{ fontSize:10, color:active?'#FF7AA8':past?'#6C63FF':'#aaa', letterSpacing:'0.1em', textTransform:'uppercase', fontWeight:active?700:400 }}>{l}</span>
-                    {i<3&&<span style={{ color:'#ccc', fontSize:14, marginLeft:2 }}>›</span>}
-                  </div>
-                );
-              })}
+            <div
+              className={`create-modal__panel${step === 'customize' && draft?.type === 'stamp' ? ' create-modal__panel--editor' : ''}`}
+              onClick={e=>e.stopPropagation()}
+            >
+            <div className="create-modal__topbar">
+              <button
+                type="button"
+                className="create-modal__topaction"
+                onClick={handleCreateBack}
+              >
+                ← Back
+              </button>
+              {step === 'customize' ? (
+                <button
+                  type="button"
+                  className="create-modal__topaction"
+                  onClick={handleSave}
+                >
+                  Done
+                </button>
+              ) : (
+                <span className="create-modal__topspacer" aria-hidden="true" />
+              )}
             </div>
 
             {/* Step 1 */}
@@ -1749,17 +1918,12 @@ export default function StampApp() {
             {/* Step 4: Customize */}
             {step==='customize' && draft && (
               draft.type==='stamp' ? (
-                <div style={{ maxWidth:640, margin:'0 auto', display:'flex', flexDirection:'column', gap:18, minHeight:'calc(100dvh - 40px)' }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
-                    <button onClick={()=>setShowCamera(true)} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#B33A0B', cursor:'pointer', fontSize:18, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>← Edit Stamp</button>
-                    <button onClick={handleSave} style={{ minHeight:0, padding:0, border:'none', background:'transparent', color:'#B33A0B', cursor:'pointer', fontSize:18, fontFamily:'"Playfair Display",Georgia,serif', fontWeight:700 }}>Done</button>
-                  </div>
-
-                  <div style={{ flex:1, display:'grid', alignItems:'center' }}>
+                <div className="stamp-editor-shell">
+                  <div className="stamp-editor-preview">
                     <EditorStampPreview item={draft} onClick={()=>setLightbox(draft)}/>
                   </div>
 
-                  <div style={{ marginTop:'auto', position:'sticky', bottom:'calc(8px + env(safe-area-inset-bottom))', background:'rgba(255,251,248,0.96)', border:'1px solid rgba(223,216,218,0.9)', borderRadius:28, padding:'16px 14px 18px', boxShadow:'0 18px 36px rgba(95,109,136,0.14)', backdropFilter:'blur(18px)', display:'grid', gap:14 }}>
+                  <div className="stamp-editor-tray">
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0, 1fr))', gap:8 }}>
                       {[
                         { id:'details', label:'Details' },
@@ -1789,6 +1953,7 @@ export default function StampApp() {
                       ))}
                     </div>
 
+                    <div className="stamp-editor-tray__scroller" data-native-scroll>
                     {stampEditorTab === 'details' && (
                       <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:12 }}>
                         <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
@@ -1797,7 +1962,7 @@ export default function StampApp() {
                         </div>
                         <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)' }}>
                           <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Origin</label>
-                          <input value={draft.country} onChange={e=>setDraft(d=>({...d,country:e.target.value.toUpperCase()}))} placeholder="CANADA" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
+                          <input value={draft.origin || ''} onChange={e=>setDraft(d=>({...d,origin:e.target.value}))} placeholder="Toronto, Canada" style={{ width:'100%', border:'none', background:'transparent', padding:0, fontSize:16, lineHeight:1.4, color:'#34160F', fontFamily:'"Playfair Display",Georgia,serif', outline:'none' }}/>
                         </div>
                         <div style={{ background:'rgba(255,240,240,0.9)', borderRadius:16, padding:'18px 16px', boxShadow:'0 10px 24px rgba(215,163,163,0.12)', gridColumn:'1 / -1' }}>
                           <label style={{ fontSize:10, color:'#9A6D68', letterSpacing:'0.12em', textTransform:'uppercase', display:'block', marginBottom:10, fontFamily:'"Libre Baskerville",Georgia,serif' }}>Archived</label>
@@ -1880,6 +2045,7 @@ export default function StampApp() {
                         <textarea value={draft.note || ''} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} placeholder="Describe the atmosphere of the collection..." style={{ width:'100%', minHeight:92, border:'none', borderBottom:'1px solid rgba(154,109,104,0.25)', background:'transparent', resize:'vertical', fontSize:16, lineHeight:1.55, color:'#5A626E', fontFamily:'"Playfair Display",Georgia,serif', fontStyle:'italic', outline:'none' }}/>
                       </div>
                     )}
+                    </div>
 
                     <button onClick={closeCreateModal} style={{ alignSelf:'center', background:'none', border:'none', color:'#9A6D68', cursor:'pointer', fontSize:11, fontFamily:'Georgia,serif', letterSpacing:'0.08em' }}>Cancel</button>
                   </div>
@@ -1919,31 +2085,9 @@ export default function StampApp() {
           </div>
         )}
 
-        {/* ══ SAVED STAMPS */}
-        {tab==='saved' && (
+        {/* ══ SETTINGS */}
+        {tab==='settings' && (
           <div style={{ maxWidth:430, margin:'0 auto', color:'#4A1019' }}>
-            <section style={{ textAlign:'center', padding:'12px 0 24px' }}>
-              <div style={{ width:92, height:92, margin:'0 auto 18px', borderRadius:18, background:'#2555FF', boxShadow:'0 16px 32px rgba(37,85,255,0.18)', display:'grid', placeItems:'center', position:'relative' }}>
-                <div style={{ width:46, height:46, borderRadius:'50%', background:'white', color:'#2555FF', display:'grid', placeItems:'center', fontSize:24 }}>✓</div>
-                <div style={{ position:'absolute', right:-8, top:-8, width:28, height:28, borderRadius:10, background:'#FFD227', color:'#4A3D00', display:'grid', placeItems:'center', fontSize:14, fontWeight:700 }}>✦</div>
-              </div>
-              <h2 style={{ margin:'0 0 8px', fontFamily:'"Playfair Display",Georgia,serif', fontSize:34, lineHeight:0.98, color:'#A82412', fontWeight:700 }}>Stamp Collection</h2>
-              <p style={{ margin:'0 0 20px', color:'#6E6B78', fontSize:13, lineHeight:1.6 }}>{account.name}&apos;s catalogued collection.</p>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginBottom:22 }}>
-                {[
-                  { value:myItems.length.toLocaleString(), label:'Stampz' },
-                  { value:Math.max(0, myItems.reduce((sum,item)=>sum + (item.likes||0), 0)).toLocaleString(), label:'Likes' },
-                  { value:new Set(myItems.map(item=>item.collection)).size || 0, label:'Sets' },
-                ].map(stat=>(
-                  <div key={stat.label}>
-                    <p style={{ margin:0, color:'#4A1019', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, fontWeight:700 }}>{stat.value}</p>
-                    <p style={{ margin:'4px 0 0', color:'#9B7BAE', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' }}>{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-              <button onClick={openCreateModal} style={{ width:'min(100%, 320px)', padding:'17px 20px', border:'none', borderRadius:13, background:'#B64512', color:'white', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700, boxShadow:'0 18px 34px rgba(199,50,18,0.18)' }}>Capture New Stamp</button>
-            </section>
-
             <section style={{ marginBottom:24, background:'rgba(255,255,255,0.92)', border:'1px solid rgba(223,216,218,0.9)', borderRadius:22, padding:'18px 18px 20px', boxShadow:'0 14px 30px rgba(95,109,136,0.08)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
                 <div style={{ width:56, height:56, borderRadius:'50%', background:'linear-gradient(135deg, #8cb6df, #f3c9bf)', display:'grid', placeItems:'center', color:'#fff', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, fontWeight:700 }}>
@@ -2008,6 +2152,33 @@ export default function StampApp() {
                   ? (locationStatus === 'ready' ? 'Tracking enabled' : 'Tracking enabled • awaiting location')
                   : 'Tracking disabled'}
               </div>
+            </section>
+          </div>
+        )}
+
+        {/* ══ SAVED STAMPS */}
+        {tab==='saved' && (
+          <div style={{ maxWidth:430, margin:'0 auto', color:'#4A1019' }}>
+            <section style={{ textAlign:'center', padding:'12px 0 24px' }}>
+              <div style={{ width:92, height:92, margin:'0 auto 18px', borderRadius:18, background:'#2555FF', boxShadow:'0 16px 32px rgba(37,85,255,0.18)', display:'grid', placeItems:'center', position:'relative' }}>
+                <div style={{ width:46, height:46, borderRadius:'50%', background:'white', color:'#2555FF', display:'grid', placeItems:'center', fontSize:24 }}>✓</div>
+                <div style={{ position:'absolute', right:-8, top:-8, width:28, height:28, borderRadius:10, background:'#FFD227', color:'#4A3D00', display:'grid', placeItems:'center', fontSize:14, fontWeight:700 }}>✦</div>
+              </div>
+              <h2 style={{ margin:'0 0 8px', fontFamily:'"Playfair Display",Georgia,serif', fontSize:34, lineHeight:0.98, color:'#A82412', fontWeight:700 }}>Stamp Collection</h2>
+              <p style={{ margin:'0 0 20px', color:'#6E6B78', fontSize:13, lineHeight:1.6 }}>{account.name}&apos;s catalogued collection.</p>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginBottom:22 }}>
+                {[
+                  { value:myItems.length.toLocaleString(), label:'Stampz' },
+                  { value:Math.max(0, myItems.reduce((sum,item)=>sum + (item.likes||0), 0)).toLocaleString(), label:'Likes' },
+                  { value:new Set(myItems.map(item=>item.collection)).size || 0, label:'Sets' },
+                ].map(stat=>(
+                  <div key={stat.label}>
+                    <p style={{ margin:0, color:'#4A1019', fontFamily:'"Playfair Display",Georgia,serif', fontSize:24, fontWeight:700 }}>{stat.value}</p>
+                    <p style={{ margin:'4px 0 0', color:'#9B7BAE', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' }}>{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+              <button onClick={openCreateModal} style={{ width:'min(100%, 320px)', padding:'17px 20px', border:'none', borderRadius:13, background:'#B64512', color:'white', cursor:'pointer', fontFamily:'"Libre Baskerville",Georgia,serif', fontSize:16, fontWeight:700, boxShadow:'0 18px 34px rgba(199,50,18,0.18)' }}>Capture New Stamp</button>
             </section>
 
             <section>
@@ -2258,9 +2429,10 @@ export default function StampApp() {
 
       {!showCreateModal && (
         <nav className="app-nav" aria-label="Primary">
-          <TabButton id="map" icon="🗺️" label="Map View" active={tab==='map'} onSelect={handleTabSelect}/>
-          <TabButton id="feed" icon="📰" label="Feed View" active={tab==='feed'} onSelect={handleTabSelect}/>
+          <TabButton id="map" icon="🌐" label="Map View" active={tab==='map'} onSelect={handleTabSelect}/>
+          <TabButton id="feed" icon="📖" label="Feed View" active={tab==='feed'} onSelect={handleTabSelect}/>
           <TabButton id="saved" icon="✉️" label="Saved Stamps" active={tab==='saved'} onSelect={handleTabSelect}/>
+          <TabButton id="settings" icon="👤" label="Settings" active={tab==='settings'} onSelect={handleTabSelect}/>
         </nav>
       )}
 

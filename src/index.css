@@ -226,7 +226,7 @@ button {
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(8px);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   position: fixed;
   left: 0;
@@ -247,21 +247,21 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 0;
   border: 0;
-  border-radius: 16px;
+  border-radius: 18px;
   background: transparent;
   color: #7d6d72;
   cursor: pointer;
   font-family: var(--sans);
-  font-size: 10px;
+  font-size: 0;
   font-weight: 700;
   letter-spacing: 0.04em;
   transition: background 0.18s, color 0.18s, transform 0.18s;
 }
 
 .app-nav button span {
-  font-size: 18px;
+  font-size: 22px;
   line-height: 1;
 }
 
@@ -331,6 +331,79 @@ button {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+}
+
+.create-modal__panel--editor {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.create-modal__topbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 14px;
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(255, 253, 248, 0.82), rgba(255, 253, 248, 0));
+}
+
+.create-modal__topaction {
+  min-height: 0;
+  justify-self: start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #b33a0b;
+  cursor: pointer;
+  font-family: var(--heading);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.create-modal__topbar > .create-modal__topaction:last-child {
+  justify-self: end;
+}
+
+.create-modal__topspacer {
+  width: 48px;
+  height: 1px;
+}
+
+.stamp-editor-shell {
+  flex: 1;
+  min-height: 0;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.stamp-editor-preview {
+  min-height: 0;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 8px 0 4px;
+  overflow: hidden;
+}
+
+.stamp-editor-tray {
+  flex: 0 0 auto;
+  background: rgba(255, 251, 248, 0.96);
+  border: 1px solid rgba(223, 216, 218, 0.9);
+  border-radius: 28px;
+  padding: 16px 14px 18px;
+  box-shadow: 0 18px 36px rgba(95, 109, 136, 0.14);
+  backdrop-filter: blur(18px);
+  display: grid;
+  gap: 14px;
 }
 
 .create-modal__close {
@@ -673,6 +746,10 @@ button {
     padding: calc(34px + env(safe-area-inset-top)) max(28px, env(safe-area-inset-left)) calc(52px + env(safe-area-inset-bottom)) max(28px, env(safe-area-inset-right));
   }
 
+  .stamp-editor-preview {
+    padding: 14px 0 6px;
+  }
+
   .auth-screen {
     padding: 32px;
   }
@@ -714,18 +791,18 @@ button {
     box-shadow: 0 18px 40px rgba(95, 109, 136, 0.1);
   }
 
+  .app-nav {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .app-nav button {
-    min-height: 64px;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 10px;
-    padding: 0 14px;
-    font-size: 11px;
-    text-align: left;
+    min-height: 62px;
+    justify-content: center;
+    padding: 0;
   }
 
   .app-nav button span {
-    font-size: 20px;
+    font-size: 24px;
   }
 }
 
