@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 
 const STAMP_COLORS = ['#FFFDF8', '#FDE2E4', '#DDEAFB', '#E9E6FF', '#DFF4EE', '#FFF0D2', '#F7D7E8', '#F8ECE6'];
 const STAMP_TEXT_COLORS = ['#FFFFFF', '#4A322D', '#315476', '#8A3D2C', '#5B4F7E', '#476758', '#A95A3B', '#1F3F63', '#8C2146', '#7A680D', '#3A3A5A', '#2E5B4F', '#A24A16'];
@@ -144,30 +144,31 @@ function buildPerfHoles(x, y, w, h, holeR, spacing) {
 }
 
 /* ── CSS/SVG stamp mask for StampView ── */
-function buildStampMask(w, h, hole, sp) {
-  const hCount = Math.max(3, Math.round(w / sp));
-  const vCount = Math.max(3, Math.round(h / sp));
+function buildStampMask(w, h, hole, sp, maskId) {
+  const hCount = Math.round(w / sp);
   const hSp = w / hCount;
+  const vCount = Math.round(h / sp);
   const vSp = h / vCount;
-  const inset = hole;
-  let scallops = '';
+
+  let cutouts = '';
+  // Draw circles exactly on the geometric boundaries
   for (let i = 0; i <= hCount; i++) {
     const x = (i * hSp).toFixed(1);
-    scallops += `<circle cx="${x}" cy="${inset}" r="${hole}"/><circle cx="${x}" cy="${(h - inset).toFixed(1)}" r="${hole}"/>`;
+    cutouts += `<circle cx="${x}" cy="0" r="${hole}"/><circle cx="${x}" cy="${h}" r="${hole}"/>`;
   }
-  for (let i = 1; i < vCount; i++) {
+  for (let i = 0; i <= vCount; i++) {
     const y = (i * vSp).toFixed(1);
-    scallops += `<circle cx="${inset}" cy="${y}" r="${hole}"/><circle cx="${(w - inset).toFixed(1)}" cy="${y}" r="${hole}"/>`;
+    cutouts += `<circle cx="0" cy="${y}" r="${hole}"/><circle cx="${w}" cy="${y}" r="${hole}"/>`;
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect x="${inset}" y="${inset}" width="${w - inset * 2}" height="${h - inset * 2}" rx="${Math.max(1, hole * 0.34)}" fill="white"/><g fill="white">${scallops}</g></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><mask id="${maskId}"><rect width="${w}" height="${h}" fill="white"/><g fill="black" stroke="black" stroke-width="0.5">${cutouts}</g></mask></defs><rect width="${w}" height="${h}" fill="white" mask="url(#${maskId})"/></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
 const STAMP_SIZES = {
-  xs: { w: 86, h: 106, frame: 10, hole: 4.2, sp: 8.5 },
-  sm: { w: 124, h: 154, frame: 13, hole: 5.2, sp: 10 },
-  md: { w: 158, h: 198, frame: 15, hole: 6, sp: 11.5 },
-  lg: { w: 218, h: 272, frame: 20, hole: 7.5, sp: 14.5 },
+  xs: { w: 86, h: 106, frame: 8, hole: 2.8, sp: 8.8 },
+  sm: { w: 124, h: 154, frame: 12, hole: 4.2, sp: 12.8 },
+  md: { w: 158, h: 198, frame: 14, hole: 5.2, sp: 15.6 },
+  lg: { w: 218, h: 272, frame: 20, hole: 7.2, sp: 21.4 },
 };
 
 const TILE_SIZE = 256;
@@ -278,7 +279,8 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   const textStrokeColor = item.textStrokeColor || 'rgba(255,252,248,0.92)';
   const aging = getAgingStyle(item.agingIntensity ?? 36);
   const outerRadius = Math.max(12, w * 0.08);
-  const maskImage = buildStampMask(w, h, Math.max(4.2, w * 0.032), Math.max(8.8, w * 0.064));
+  const maskId = useMemo(() => `m_${Math.random().toString(36).slice(2, 9)}_${w}`, [w]);
+  const maskImage = useMemo(() => buildStampMask(w, h, Math.max(4.2, w * 0.032), Math.max(8.8, w * 0.064), maskId), [w, h, maskId]);
   const photoInsetX = Math.max(12, w * 0.08);
   const photoInsetTop = Math.max(12, w * 0.08);
   const photoInsetBottom = Math.max(34, h * 0.2);
