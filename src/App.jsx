@@ -206,11 +206,11 @@ function buildStampMask(w, h, hole, sp, maskId) {
 }
 
 const STAMP_SIZES = {
-  xs: { w: 86, h: 106, frame: 8, hole: 2.8, sp: 8.8 },
-  sm: { w: 124, h: 154, frame: 12, hole: 4.2, sp: 12.8 },
-  md: { w: 158, h: 198, frame: 14, hole: 5.2, sp: 15.6 },
-  lg: { w: 218, h: 272, frame: 20, hole: 7.2, sp: 21.4 },
-  xl: { w: 280, h: 350, frame: 24, hole: 9, sp: 27.6 },
+  xs: { w: 86, h: 106, frame: 8, hole: 1.2, sp: 4.8 },
+  sm: { w: 124, h: 154, frame: 12, hole: 1.8, sp: 6.8 },
+  md: { w: 158, h: 198, frame: 14, hole: 2.4, sp: 8.8 },
+  lg: { w: 218, h: 272, frame: 20, hole: 3.2, sp: 11.2 },
+  xl: { w: 280, h: 350, frame: 24, hole: 4.2, sp: 13.8 },
 };
 
 const TILE_SIZE = 256;
@@ -360,9 +360,13 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
           {/* True Vector Perforations using SVG Component */}
           <svg width={w} height={h} style={{ position: 'absolute', top: 0, left: 0, width: w, height: h, overflow: 'visible' }}>
             <defs>
+              <filter id="tornEdge">
+                <feTurbulence type="fractalNoise" baseFrequency="0.15" numOctaves="3" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" xChannelSelector="R" yChannelSelector="G" />
+              </filter>
               <mask id={maskId}>
                 <rect width={w} height={h} fill="white" rx={outerRadius} />
-                <g fill="black">{cutouts}</g>
+                <g fill="black" filter="url(#tornEdge)">{cutouts}</g>
               </mask>
             </defs>
             {/* Edge Stroke Layer */}
@@ -376,7 +380,7 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
           {/* Photo and Text Content */}
           <div style={{ position: 'absolute', left: photoInsetX, right: photoInsetX, top: photoInsetTop, height: imageHeight, background: stampPaper, overflow: 'hidden', boxShadow: `0 0 0 1px ${aging.borderColor}, inset 0 0 0 1px rgba(255,255,255,0.56)` }}>
             {item.image
-              ? <img src={item.image} alt={item.label} style={{ width: '100%', aspectRatio: '1 / 1.18', objectFit: 'cover', objectPosition: 'center center', display: 'block', background: stampPaper, filter: aging.imageFilter }} />
+              ? <img src={item.image} alt={item.label} style={{ width: '110%', height: '110%', objectFit: 'cover', transform: `translate(${(item.panX || 0)}px, ${(item.panY || 0)}px)`, objectPosition: 'center center', display: 'block', background: stampPaper, filter: aging.imageFilter }} />
               : <div style={{ width: '100%', height: '100%', background: stampPaper, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: Math.max(10, w * 0.1), fontStyle: 'italic', textAlign: 'center', padding: 6, fontFamily: 'var(--heading)', lineHeight: 1.3 }}>{item.label || 'Stamp'}</span>
               </div>
@@ -404,8 +408,9 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   );
 }
 
-function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1, setEditorZoom }) {
+function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1, setEditorZoom, onUpdateDraft }) {
   const [prevDist, setPrevDist] = useState(0);
+  const [dragStart, setDragStart] = useState(null);
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
@@ -414,6 +419,8 @@ function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1, setEdit
         e.touches[0].pageY - e.touches[1].pageY
       );
       setPrevDist(dist);
+    } else if (e.touches.length === 1) {
+      setDragStart({ x: e.touches[0].pageX, y: e.touches[0].pageY, panX: item.panX || 0, panY: item.panY || 0 });
     }
   };
 
@@ -429,10 +436,17 @@ function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1, setEdit
         setEditorZoom?.(prev => Math.min(2.5, Math.max(0.5, prev + zoomDelta)));
       }
       setPrevDist(dist);
+    } else if (e.touches.length === 1 && dragStart) {
+      const dx = e.touches[0].pageX - dragStart.x;
+      const dy = e.touches[0].pageY - dragStart.y;
+      onUpdateDraft?.(d => ({ ...d, panX: dragStart.panX + dx, panY: dragStart.panY + dy }));
     }
   };
 
-  const handleTouchEnd = () => setPrevDist(0);
+  const handleTouchEnd = () => {
+    setPrevDist(0);
+    setDragStart(null);
+  };
 
   const preview = (
     <div
@@ -937,7 +951,7 @@ function CameraViewfinder({ type, onCapture, onCancel }) {
         : { boxW: initialW, boxH: initialH };
     }
 
-    const initialH = Math.min(vh * 0.62, 450);
+    const initialH = Math.min(vh * 0.52, 400);
     const initialW = initialH * STAMP_AR;
     return initialW > vw - pad * 2
       ? { boxW: vw - pad * 2, boxH: (vw - pad * 2) / STAMP_AR }
@@ -2200,7 +2214,7 @@ function App() {
                 draft.type === 'stamp' ? (
                   <div className="stamp-editor-shell" style={{ background: '#080808', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <div className="stamp-editor-preview" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', padding: '40px 16px 80px', paddingTop: 'calc(60px + env(safe-area-inset-top))' }}>
-                      <EditorStampPreview item={draft} isTrayOpen={!!stampEditorTab} editorZoom={editorZoom} setEditorZoom={setEditorZoom} onClick={() => setStampEditorTab(null)} />
+                      <EditorStampPreview item={draft} isTrayOpen={!!stampEditorTab} editorZoom={editorZoom} setEditorZoom={setEditorZoom} onUpdateDraft={setDraft} onClick={() => setStampEditorTab(null)} />
                     </div>
 
                     <div style={{ position: 'absolute', bottom: stampEditorTab ? '48vh' : 90, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, zIndex: 15, transition: 'bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1)', opacity: 0, pointerEvents: 'none' }}>
