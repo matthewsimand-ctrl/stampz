@@ -1312,88 +1312,77 @@ function SignInScreen({ onSignIn }) {
   };
 
   return (
-    <main className="auth-screen">
-      <section className="auth-hero" aria-labelledby="signin-title">
-        <div className="auth-copy">
-          <p className="eyebrow">Stampz Account</p>
-          <div className="auth-brand-lockup">
-            <img src="/logo.png" alt="" className="auth-brand-mark" style={{ width: 24, height: 24, objectFit: 'contain' }} />
-            <span className="auth-brand-name">Stampz</span>
-          </div>
-          <h1 id="signin-title">Keep your collection safe between visits.</h1>
-          <p>
-            Sign in before you create, save, and browse so your stamps and postcards stay tied
-            to your account on this device.
-          </p>
-          <div className="auth-feature-row" aria-hidden="true">
-            <span>Map every memory</span>
-            <span>Save your collection</span>
-            <span>Travel-ready archive</span>
-          </div>
+    <main style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '40px 24px',
+      background: 'linear-gradient(135deg, #1aa3ff, #ff6b9d, #ffd200)'
+    }}>
+      <div style={{ maxWidth: 420, width: '100%', display: 'flex', flexDirection: 'column', gap: 32, alignItems: 'center' }}>
+
+        {/* Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <img src="/logo.png" alt="" style={{ width: 44, height: 44, objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' }} />
+          <h1 style={{ fontFamily: 'var(--heading)', fontSize: 44, color: 'white', margin: 0, letterSpacing: '-0.02em', textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>Stampz</h1>
         </div>
 
-        <div className="auth-stage">
-          <div className="auth-stage__frame">
-            <div className="auth-stage__note auth-stage__note--top">Atlas Edition</div>
-            <div className="auth-stage__stamp">
-              <StampView item={AUTH_HERO_STAMP} size="lg" />
-            </div>
-            <div className="auth-stage__meta">
-              <div>
-                <p className="auth-stage__label">Personal archive</p>
-                <strong>Capture once, keep it pinned.</strong>
-              </div>
-              <span className="auth-stage__chip">Map-first</span>
-            </div>
-          </div>
+        {/* Info */}
+        <div style={{ textAlign: 'center', color: 'white', textShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <p style={{ margin: 0, fontSize: 18, fontWeight: 500, lineHeight: 1.5, fontFamily: 'var(--sans)' }}>
+            Turn your photos into travel stamps.<br />Pin them to the map and build your archive.
+          </p>
         </div>
 
-        <form className="auth-panel" onSubmit={handleSubmit}>
-          <div>
-            <p className="auth-panel__label">Account preservation</p>
-            <h2>{isSignup ? 'Create account' : 'Welcome back'}</h2>
-            {errorMsg && <p style={{ color: 'var(--accent-red)', fontSize: 13, background: 'var(--surface-color)', padding: 12, borderRadius: 8 }}>{errorMsg}</p>}
+        {/* Hero Stamp Example */}
+        <div style={{ transform: 'scale(0.85) rotate(-4deg)', transition: 'transform 0.4s', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))', margin: '-10px 0' }}>
+          <StampView item={AUTH_HERO_STAMP} size="lg" />
+        </div>
+
+        {/* Form Card */}
+        <form onSubmit={handleSubmit} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.96)', padding: '32px 24px', borderRadius: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <h2 style={{ margin: 0, fontFamily: 'var(--heading)', fontSize: 26, color: '#222' }}>{isSignup ? 'Create Account' : 'Welcome Back'}</h2>
           </div>
-          <label>
-            Email address
-            <input
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              type="email"
-              autoComplete="email"
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              type="password"
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              required
-            />
-          </label>
-          <button type="submit" disabled={loading}>{loading ? 'Please wait...' : (isSignup ? 'Create account' : 'Sign in')}</button>
-          {!isSignup && (
-            <button type="button" className="auth-link" onClick={() => setMode('signup')} disabled={loading}>
-              Don't have an account already? Create account
-            </button>
-          )}
-          {isSignup && (
-            <button type="button" className="auth-link" onClick={() => setMode('signin')} disabled={loading}>
-              Already have an account? Sign in
-            </button>
-          )}
-          <p className="auth-footnote">
-            {isSignup
-              ? 'Create a stampz account to preserve your collection across devices.'
-              : 'Sign in to sync and restore your saved remote collection.'}
-          </p>
+
+          {errorMsg && <p style={{ margin: 0, color: 'var(--accent-red)', fontSize: 13, background: 'rgba(255,0,0,0.05)', padding: '12px', borderRadius: 8, textAlign: 'center' }}>{errorMsg}</p>}
+
+          <input
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="Email address"
+            type="email"
+            required
+            style={{ width: '100%', padding: '16px', fontSize: 16, border: '1.5px solid #E5E5E5', borderRadius: 12, outline: 'none', transition: 'border-color 0.2s', fontFamily: 'var(--sans)' }}
+            onFocus={e => e.target.style.borderColor = '#ff6b9d'}
+            onBlur={e => e.target.style.borderColor = '#E5E5E5'}
+          />
+          <input
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Password"
+            type="password"
+            required
+            style={{ width: '100%', padding: '16px', fontSize: 16, border: '1.5px solid #E5E5E5', borderRadius: 12, outline: 'none', transition: 'border-color 0.2s', fontFamily: 'var(--sans)' }}
+            onFocus={e => e.target.style.borderColor = '#ff6b9d'}
+            onBlur={e => e.target.style.borderColor = '#E5E5E5'}
+          />
+
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', marginTop: 12, background: 'linear-gradient(135deg, #ff6b9d, #f5576c)', color: 'white', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245, 87, 108, 0.4)', transition: 'transform 0.1s' }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+            {loading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Sign In')}
+          </button>
+
+          <button type="button" onClick={() => setMode(isSignup ? 'signin' : 'signup')} disabled={loading} style={{ background: 'none', border: 'none', color: '#666', fontSize: 14, cursor: 'pointer', marginTop: 8, padding: 8, fontFamily: 'var(--sans)' }}>
+            {isSignup ? Object.assign(<span>Already have an account? <span style={{ fontWeight: 600, color: '#ff6b9d' }}>Sign in</span></span>)
+              : Object.assign(<span>Don't have an account? <span style={{ fontWeight: 600, color: '#ff6b9d' }}>Create one</span></span>)}
+          </button>
         </form>
-      </section>
+      </div>
     </main>
   );
 }
