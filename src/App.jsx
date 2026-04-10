@@ -544,7 +544,17 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
-      style={{ position: 'relative', borderRadius: 28, overflow: 'hidden', background: '#d4d4d6', border: '1px solid rgba(173, 168, 169, 0.42)', boxShadow: '0 18px 42px rgba(95, 109, 136, 0.12)', minHeight: 520, cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+      style={{
+        position: 'relative',
+        borderRadius: 0,
+        overflow: 'hidden',
+        background: '#d4d4d6',
+        borderBottom: '1px solid var(--border)',
+        height: 'calc(100vh - 64px - env(safe-area-inset-top) - 74px - env(safe-area-inset-bottom))',
+        minHeight: 380,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        touchAction: 'none'
+      }}
     >
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(255,255,255,0.34), rgba(120,126,141,0.08))', pointerEvents: 'none', zIndex: 1 }} />
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle, rgba(182,69,18,0.16) 1px, transparent 1.25px) 0 0 / 22px 22px', opacity: 0.18, pointerEvents: 'none', zIndex: 2 }} />
@@ -1180,10 +1190,16 @@ function StampImageFramer({ image, onApply, onBack }) {
   );
 }
 
-function TabButton({ id, icon, label, active, onSelect }) {
+function TabButton({ id, icon, label, active, onSelect, isCenter }) {
   return (
-    <button onClick={() => onSelect(id)} className={active ? 'is-active' : ''} aria-label={label} title={label}>
+    <button
+      onClick={() => onSelect(id)}
+      className={`${active ? 'is-active' : ''} ${isCenter ? 'nav-center-action' : ''}`}
+      aria-label={label}
+      title={label}
+    >
       <span>{icon}</span>
+      {!isCenter && label}
     </button>
   );
 }
@@ -1664,11 +1680,10 @@ function App() {
   };
 
   const handleCameraCancel = () => {
-    if (draft?.image) {
-      setShowCamera(false);
-      return;
+    setShowCamera(false);
+    if (!editingItemId && !draft?.image) {
+      setStep('upload');
     }
-    closeCreateModal();
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -1721,12 +1736,15 @@ function App() {
   };
 
   const openCreateModal = () => {
-    setShowCreateModal(true);
     setEditingItemId(null);
     setStampEditorTab('details');
+    // Start with a fresh draft but let user choose type or go straight to camera?
+    // User said "+ button to add a new stamp", so let's default to stamp
     setDraft(createDraft('stamp', currentLocation));
-    setStep('customize');
-    setShowCamera(true);
+    setStep('type'); // Show type selection first for variety, or skip?
+    // On second thought, let's go to step 'upload' which has the Camera button
+    setStep('upload');
+    setShowCreateModal(true);
     if (locationTrackingEnabled && !currentLocation) {
       fetchCurrentLocation({ silent: true, force: true });
     }
@@ -1849,17 +1867,11 @@ function App() {
 
       {!showCreateModal && (
         <header className="app-header">
-          <button className="header-create-button" type="button" onClick={openCreateModal} aria-label="Capture">
-            <span style={{ fontSize: 22, fontWeight: 500 }}>+</span>
-          </button>
           <h1 className="app-brand-title">Stampz</h1>
-          <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{account.name.split('@')[0]}</span>
-          </div>
         </header>
       )}
 
-      <main className="app-main">
+      <main className={`app-main ${tab === 'map' ? 'app-main--full' : ''}`}>
 
         {/* ══ CREATE MODAL */}
         {showCreateModal && (
@@ -2277,7 +2289,7 @@ function App() {
         {/* ══ MAP VIEW (Home) */}
         {tab === 'map' && (
           <div style={{ maxWidth: 'var(--desktop-max)', margin: '0 auto' }}>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1', background: 'var(--surface-tint)', overflow: 'hidden', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ position: 'relative', width: '100%', background: 'var(--surface-tint)', overflow: 'hidden' }}>
               <WorldMap
                 items={savedStampItems}
                 currentLocation={currentLocation}
@@ -2291,13 +2303,13 @@ function App() {
               />
               <button
                 onClick={() => requestLocation()}
-                style={{ position: 'absolute', right: 16, top: 16, zIndex: 5, width: 44, height: 44, borderRadius: '50%', background: 'white', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)', color: 'var(--accent-strong)' }}
+                style={{ position: 'absolute', right: 16, top: 16, zIndex: 10, width: 44, height: 44, borderRadius: '50%', background: 'white', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)', color: 'var(--accent-strong)' }}
                 aria-label="Recenter"
               >
                 <span style={{ fontSize: 20 }}>📍</span>
               </button>
 
-              <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 5, background: 'rgba(255,255,255,0.94)', padding: '10px 16px', borderRadius: 14, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-soft)' }}>
+              <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 10, background: 'rgba(255,255,255,0.94)', padding: '10px 16px', borderRadius: 14, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-soft)' }}>
                 <span style={{ display: 'flex', gap: 3 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-red)' }} />
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-strong)' }} />
@@ -2452,6 +2464,7 @@ function App() {
         <nav className="app-nav" aria-label="Primary">
           <TabButton id="map" icon="⌖" label="World" active={tab === 'map'} onSelect={handleTabSelect} />
           <TabButton id="feed" icon="▤" label="Feed" active={tab === 'feed'} onSelect={handleTabSelect} />
+          <TabButton id="create" icon="+" label="Create" active={false} onSelect={openCreateModal} isCenter />
           <TabButton id="saved" icon="⚐" label="Saved" active={tab === 'saved'} onSelect={handleTabSelect} />
           <TabButton id="settings" icon="○" label="Menu" active={tab === 'settings'} onSelect={handleTabSelect} />
         </nav>

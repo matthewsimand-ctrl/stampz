@@ -26,6 +26,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Stampz needs camera access so you can capture photos for stamps and postcards.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Stampz uses your location to automatically tag your stamps and postcards with where they were captured, and to pin them on your personal map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Stampz uses your location to automatically tag your stamps and postcards with where they were captured, and to pin them on your personal map.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
