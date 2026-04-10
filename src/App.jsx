@@ -1317,7 +1317,7 @@ function SignInScreen({ onSignIn }) {
         <div className="auth-copy">
           <p className="eyebrow">Stampz Account</p>
           <div className="auth-brand-lockup">
-            <span className="auth-brand-mark">✉️</span>
+            <img src="/logo.png" alt="" className="auth-brand-mark" style={{ width: 24, height: 24, objectFit: 'contain' }} />
             <span className="auth-brand-name">Stampz</span>
           </div>
           <h1 id="signin-title">Keep your collection safe between visits.</h1>
@@ -2365,7 +2365,7 @@ function App() {
 
               {filteredMine.length === 0 ? (
                 <div style={{ background: 'var(--surface-strong)', borderRadius: 'var(--radius-card)', padding: '60px 24px', textAlign: 'center', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>✉️</div>
+                  <div style={{ marginBottom: 16, opacity: 0.4 }}><img src="/logo.png" alt="" style={{ width: 64, height: 64, filter: 'grayscale(1)' }} /></div>
                   <p style={{ fontFamily: 'var(--heading)', fontSize: 22, color: 'var(--text-h)', margin: '0 0 8px' }}>No stampz caught yet</p>
                   <p style={{ margin: '0 0 24px', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>Your collection is looking a bit sparse. Head out into the world and capture some memories!</p>
                   <button onClick={openCreateModal} style={{ padding: '12px 28px', background: 'var(--accent-red)', color: 'white', border: 'none', borderRadius: 'var(--radius-pill)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--sans)' }}>Start Capturing</button>
