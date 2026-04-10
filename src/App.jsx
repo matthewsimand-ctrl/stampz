@@ -370,9 +370,9 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   );
 }
 
-function EditorStampPreview({ item, onClick, isTrayOpen }) {
+function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1 }) {
   const preview = (
-    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? 'scale(0.55) translateY(-25vh)' : 'scale(1.15) translateY(-6vh)', padding: '8px 0' }}>
+    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? `scale(${0.65 * editorZoom}) translateY(-35vh)` : `scale(${1.25 * editorZoom}) translateY(-8vh)`, padding: '8px 0' }}>
       <StampView item={item} size="xl" />
     </div>
   );
@@ -1431,6 +1431,7 @@ function App() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
   const [stampEditorTab, setStampEditorTab] = useState(null);
+  const [editorZoom, setEditorZoom] = useState(1);
   const [colFilter, setColFilter] = useState('All');
   const [browseFilter, setBrowseFilter] = useState('All');
   const [viewingProfile, setViewingProfile] = useState(null);
@@ -2146,31 +2147,38 @@ function App() {
                 draft.type === 'stamp' ? (
                   <div className="stamp-editor-shell" style={{ background: '#080808', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <div className="stamp-editor-preview" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', padding: '40px 16px 80px', paddingTop: 'calc(60px + env(safe-area-inset-top))' }}>
-                      <EditorStampPreview item={draft} isTrayOpen={!!stampEditorTab} onClick={() => setStampEditorTab(null)} />
+                      <EditorStampPreview item={draft} isTrayOpen={!!stampEditorTab} editorZoom={editorZoom} onClick={() => setStampEditorTab(null)} />
                     </div>
 
                     {!stampEditorTab ? (
-                      <div style={{ position: 'absolute', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 24, zIndex: 10 }}>
-                        {[
-                          { id: 'details', label: 'Aa', sub: 'Details' },
-                          { id: 'style', label: '✨', sub: 'Style' },
-                          { id: 'notes', label: '📝', sub: 'Notes' },
-                        ].map(tabItem => (
-                          <button
-                            key={tabItem.id}
-                            type="button"
-                            onClick={() => setStampEditorTab(tabItem.id)}
-                            style={{
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                              background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', outline: 'none'
-                            }}
-                          >
-                            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'grid', placeItems: 'center', fontSize: 18, border: '1px solid rgba(255,255,255,0.2)' }}>
-                              {tabItem.label}
-                            </div>
-                            <span style={{ fontSize: 10, fontFamily: 'var(--sans)', textTransform: 'uppercase', letterSpacing: '0.05em', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>{tabItem.sub}</span>
-                          </button>
-                        ))}
+                      <div style={{ position: 'absolute', bottom: 30, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, zIndex: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.1)', padding: '8px 16px', borderRadius: 20, backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                          <button onClick={() => setEditorZoom(z => Math.max(0.5, z - 0.1))} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 20, padding: '0 8px', cursor: 'pointer', opacity: 0.8, lineHeight: 1 }}>−</button>
+                          <input type="range" min="0.5" max="1.5" step="0.05" value={editorZoom} onChange={e => setEditorZoom(Number(e.target.value))} style={{ width: 120, accentColor: '#fff', height: 4, opacity: 0.9 }} />
+                          <button onClick={() => setEditorZoom(z => Math.min(1.5, z + 0.1))} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 20, padding: '0 8px', cursor: 'pointer', opacity: 0.8, lineHeight: 1 }}>+</button>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 24 }}>
+                          {[
+                            { id: 'details', label: 'Aa', sub: 'Details' },
+                            { id: 'style', label: '✨', sub: 'Style' },
+                            { id: 'notes', label: '📝', sub: 'Notes' },
+                          ].map(tabItem => (
+                            <button
+                              key={tabItem.id}
+                              type="button"
+                              onClick={() => setStampEditorTab(tabItem.id)}
+                              style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', outline: 'none'
+                              }}
+                            >
+                              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'grid', placeItems: 'center', fontSize: 18, border: '1px solid rgba(255,255,255,0.2)' }}>
+                                {tabItem.label}
+                              </div>
+                              <span style={{ fontSize: 10, fontFamily: 'var(--sans)', textTransform: 'uppercase', letterSpacing: '0.05em', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>{tabItem.sub}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     ) : (
                       <div className="stamp-editor-tray" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45vh', minHeight: 380, background: '#1c1c1c', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', zIndex: 20, boxShadow: '0 -10px 40px rgba(0,0,0,0.5)' }}>
@@ -2178,7 +2186,9 @@ function App() {
                           <h3 style={{ margin: 0, color: '#fff', fontFamily: 'var(--sans)', fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             {stampEditorTab === 'details' ? 'Details' : stampEditorTab === 'style' ? 'Style' : stampEditorTab === 'share' ? 'Saving Options' : 'Notes'}
                           </h3>
-                          <button onClick={() => setStampEditorTab(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>×</button>
+                          <button onClick={() => setStampEditorTab(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                          </button>
                         </div>
 
                         <div className="stamp-editor-tray__scroller" data-native-scroll style={{ flex: 1, overflowY: 'auto' }}>
