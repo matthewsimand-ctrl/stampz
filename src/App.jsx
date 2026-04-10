@@ -281,9 +281,9 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   const outerRadius = Math.max(12, w * 0.08);
   const maskId = useMemo(() => `m_${Math.random().toString(36).slice(2, 9)}_${w}`, [w]);
   const maskImage = useMemo(() => buildStampMask(w, h, Math.max(4.2, w * 0.032), Math.max(8.8, w * 0.064), maskId), [w, h, maskId]);
-  const photoInsetX = Math.max(12, w * 0.08);
-  const photoInsetTop = Math.max(12, w * 0.08);
-  const photoInsetBottom = Math.max(34, h * 0.2);
+  const photoInsetX = Math.max(15, w * 0.095);
+  const photoInsetTop = Math.max(15, w * 0.095);
+  const photoInsetBottom = Math.max(38, h * 0.22);
   const imageHeight = h - photoInsetTop - photoInsetBottom;
   const countryFont = Math.max(8, w * 0.06);
   const labelFont = Math.max(8, w * 0.056);
@@ -312,11 +312,11 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
               {item.location || item.country || item.origin || 'STAMPZ'}
             </div>
           </div>
-          <div style={{ position: 'absolute', left: photoInsetX, right: photoInsetX, bottom: Math.max(10, h * 0.05), display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', alignItems: 'end', gap: 8, zIndex: 2 }}>
-            <div style={{ color: item.copyrightTextColor || textColor, opacity: 0.76, fontSize: metaFont, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--sans)', whiteSpace: 'nowrap', WebkitTextStroke: `0.35px ${item.copyrightStrokeColor || textStrokeColor}` }}>
+          <div style={{ position: 'absolute', left: photoInsetX, right: photoInsetX, bottom: 0, height: photoInsetBottom, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, zIndex: 2 }}>
+            <div style={{ color: item.copyrightTextColor || textColor, opacity: 0.76, fontSize: metaFont, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--sans)', whiteSpace: 'nowrap', WebkitTextStroke: `0.35px ${item.copyrightStrokeColor || textStrokeColor}`, transform: 'translateY(-1px)' }}>
               {item.copyright || `© ${item.createdAt ? new Date(item.createdAt).getFullYear() : CURRENT_YEAR}`}
             </div>
-            <div style={{ color: item.labelTextColor || textColor, fontSize: labelFont, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)', textShadow: '0 1px 0 rgba(255,255,255,0.6)', minHeight: labelFont * 1.25, textAlign: 'right', justifySelf: 'stretch', WebkitTextStroke: `0.45px ${item.labelStrokeColor || textStrokeColor}` }}>
+            <div style={{ color: item.labelTextColor || textColor, fontSize: labelFont, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)', textShadow: '0 1px 0 rgba(255,255,255,0.6)', textAlign: 'right', WebkitTextStroke: `0.45px ${item.labelStrokeColor || textStrokeColor}`, transform: 'translateY(-1px)' }}>
               {item.label || ''}
             </div>
           </div>
