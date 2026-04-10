@@ -196,8 +196,7 @@ button:disabled {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(253, 250, 247, 0.96);
-  backdrop-filter: blur(20px);
+  background: #FDFAF7;
   border-bottom: 1px solid var(--border);
   padding-top: env(safe-area-inset-top);
   height: calc(64px + env(safe-area-inset-top));

@@ -210,6 +210,7 @@ const STAMP_SIZES = {
   sm: { w: 124, h: 154, frame: 12, hole: 4.2, sp: 12.8 },
   md: { w: 158, h: 198, frame: 14, hole: 5.2, sp: 15.6 },
   lg: { w: 218, h: 272, frame: 20, hole: 7.2, sp: 21.4 },
+  xl: { w: 280, h: 350, frame: 24, hole: 9, sp: 27.6 },
 };
 
 const TILE_SIZE = 256;
@@ -369,10 +370,10 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   );
 }
 
-function EditorStampPreview({ item, onClick }) {
+function EditorStampPreview({ item, onClick, isTrayOpen }) {
   const preview = (
-    <div style={{ width: '100%', display: 'grid', placeItems: 'center', padding: '8px 0' }}>
-      <StampView item={item} size="lg" />
+    <div style={{ width: '100%', display: 'grid', placeItems: 'center', transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? 'scale(0.65) translateY(-25%)' : 'scale(1.1) translateY(8%)', padding: '8px 0' }}>
+      <StampView item={item} size="xl" />
     </div>
   );
   if (!onClick) return preview;
@@ -1873,7 +1874,7 @@ function App() {
 
   const openCreateModal = () => {
     setEditingItemId(null);
-    setStampEditorTab('details');
+    setStampEditorTab(null);
     setDraft(createDraft('stamp', currentLocation));
     setStep('customize');
     setShowCamera(true);
@@ -1884,17 +1885,20 @@ function App() {
   };
 
   const closeCreateModal = () => {
+    if (draft && draft.type === 'stamp' && step === 'customize') {
+      if (!window.confirm('Discard changes and return to menu?')) return;
+    }
     setShowCreateModal(false);
     setShowCamera(false);
     setEditingItemId(null);
-    setStampEditorTab('details');
+    setStampEditorTab(null);
     setDraft(null);
     setStep('type');
   };
 
   const initDraft = type => {
     setEditingItemId(null);
-    setStampEditorTab('details');
+    setStampEditorTab(null);
     setDraft(createDraft(type, currentLocation));
     setShowCreateModal(true);
     setStep('upload');
@@ -2000,7 +2004,7 @@ function App() {
               className={`create-modal__panel${step === 'customize' && draft?.type === 'stamp' ? ' create-modal__panel--editor' : ''}`}
               onClick={e => e.stopPropagation()}
             >
-              <div className={`create-modal__topbar ${step === 'customize' && draft?.type === 'stamp' ? 'create-modal__topbar--editor' : ''}`} style={step === 'customize' && draft?.type === 'stamp' ? { background: 'transparent', border: 'none', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } : {}}>
+              <div className={`create-modal__topbar ${step === 'customize' && draft?.type === 'stamp' ? 'create-modal__topbar--editor' : ''}`} style={step === 'customize' && draft?.type === 'stamp' ? { background: 'transparent', border: 'none', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, paddingTop: 'calc(16px + env(safe-area-inset-top))' } : {}}>
                 <button
                   type="button"
                   className="create-modal__topaction"
@@ -2009,10 +2013,15 @@ function App() {
                 >
                   ← Back
                 </button>
+                {step === 'customize' && draft?.type === 'stamp' && (
+                  <button onClick={() => setStep('upload')} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: 100, color: 'white', cursor: 'pointer', fontFamily: 'var(--sans)', fontWeight: 600, backdropFilter: 'blur(10px)' }}>
+                    Retake
+                  </button>
+                )}
                 {step === 'customize' ? (
                   <button
                     type="button"
-                    onClick={handleSave}
+                    onClick={() => setStampEditorTab('share')}
                     disabled={isSaving}
                     style={{
                       minHeight: 0,
@@ -2029,7 +2038,7 @@ function App() {
                       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     }}
                   >
-                    {isSaving ? 'Saving...' : 'Share ✓'}
+                    Next
                   </button>
                 ) : (
                   <span className="create-modal__topspacer" aria-hidden="true" />
@@ -2108,8 +2117,8 @@ function App() {
               {step === 'customize' && draft && (
                 draft.type === 'stamp' ? (
                   <div className="stamp-editor-shell" style={{ background: '#080808', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                    <div className="stamp-editor-preview" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', padding: '70px 16px 80px' }}>
-                      <EditorStampPreview item={draft} onClick={() => setLightbox(draft)} />
+                    <div className="stamp-editor-preview" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', padding: '40px 16px 80px', paddingTop: 'calc(60px + env(safe-area-inset-top))' }}>
+                      <EditorStampPreview item={draft} isTrayOpen={!!stampEditorTab} onClick={() => setStampEditorTab(null)} />
                     </div>
 
                     {!stampEditorTab ? (
@@ -2139,12 +2148,32 @@ function App() {
                       <div className="stamp-editor-tray" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '65vh', background: '#1c1c1c', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', zIndex: 20, boxShadow: '0 -10px 40px rgba(0,0,0,0.5)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                           <h3 style={{ margin: 0, color: '#fff', fontFamily: 'var(--sans)', fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            {stampEditorTab === 'details' ? 'Details' : stampEditorTab === 'style' ? 'Style' : 'Notes'}
+                            {stampEditorTab === 'details' ? 'Details' : stampEditorTab === 'style' ? 'Style' : stampEditorTab === 'share' ? 'Saving Options' : 'Notes'}
                           </h3>
                           <button onClick={() => setStampEditorTab(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 16 }}>×</button>
                         </div>
 
                         <div className="stamp-editor-tray__scroller" data-native-scroll style={{ flex: 1, overflowY: 'auto' }}>
+
+                          {stampEditorTab === 'share' && (
+                            <div style={{ display: 'grid', gap: 14, paddingTop: 10 }}>
+                              <button onClick={() => { handleSave(); }} disabled={isSaving} style={{ padding: 18, background: 'var(--accent-strong)', color: 'white', borderRadius: 16, border: 'none', fontWeight: 700, fontSize: 16, fontFamily: 'var(--sans)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <span style={{ fontSize: 22 }}>💾</span>
+                                <div>
+                                  <div style={{ marginBottom: 2 }}>{isSaving ? 'Saving...' : 'Save Locally (My Collection)'}</div>
+                                  <div style={{ fontSize: 11, fontWeight: 400, opacity: 0.8 }}>Keep it to yourself on your device</div>
+                                </div>
+                              </button>
+                              <button onClick={() => { handleSave(); }} disabled={isSaving} style={{ padding: 18, background: '#2c2c2c', color: 'white', borderRadius: 16, border: '1px solid #444', fontWeight: 700, fontSize: 16, fontFamily: 'var(--sans)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <span style={{ fontSize: 22 }}>🌍</span>
+                                <div>
+                                  <div style={{ marginBottom: 2 }}>{isSaving ? 'Sharing...' : 'Share to Community Feed'}</div>
+                                  <div style={{ fontSize: 11, fontWeight: 400, opacity: 0.8 }}>Let other collectors discover it</div>
+                                </div>
+                              </button>
+                            </div>
+                          )}
+
                           {stampEditorTab === 'details' && (
                             <div style={{ display: 'grid', gap: 14 }}>
                               <div style={{ background: '#2c2c2c', borderRadius: 12, padding: '14px', border: '1px solid #3c3c3c' }}>
