@@ -1801,6 +1801,7 @@ function App() {
 
   const handleCameraCancel = () => {
     setShowCamera(false);
+    setShowCreateModal(false);
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -1960,22 +1961,6 @@ function App() {
   };
 
   const handleCreateBack = () => {
-    if (showCamera) {
-      setShowCamera(false);
-      return;
-    }
-
-    if (step === 'customize') {
-      if (editingItemId) {
-        closeCreateModal();
-        return;
-      }
-      // If we're customizing a new capture, back should ideally go back to camera or close.
-      // User says the selection pages should be hidden.
-      closeCreateModal();
-      return;
-    }
-
     closeCreateModal();
   };
 
@@ -2043,7 +2028,7 @@ function App() {
                   ← Back
                 </button>
                 {step === 'customize' && draft?.type === 'stamp' && (
-                  <button onClick={() => setStep('upload')} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: 100, color: 'white', cursor: 'pointer', fontFamily: 'var(--sans)', fontWeight: 600, backdropFilter: 'blur(10px)' }}>
+                  <button onClick={() => { setShowCamera(true); setShowCreateModal(false); }} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: 100, color: 'white', cursor: 'pointer', fontFamily: 'var(--sans)', fontWeight: 600, backdropFilter: 'blur(10px)' }}>
                     Retake
                   </button>
                 )}
