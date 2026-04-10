@@ -372,7 +372,7 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
 
 function EditorStampPreview({ item, onClick, isTrayOpen }) {
   const preview = (
-    <div style={{ width: '100%', display: 'grid', placeItems: 'center', transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? 'scale(0.65) translateY(-25%)' : 'scale(1.1) translateY(8%)', padding: '8px 0' }}>
+    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? 'scale(0.55) translateY(-25vh)' : 'scale(1.15) translateY(-6vh)', padding: '8px 0' }}>
       <StampView item={item} size="xl" />
     </div>
   );
@@ -2145,12 +2145,12 @@ function App() {
                         ))}
                       </div>
                     ) : (
-                      <div className="stamp-editor-tray" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '65vh', background: '#1c1c1c', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', zIndex: 20, boxShadow: '0 -10px 40px rgba(0,0,0,0.5)' }}>
+                      <div className="stamp-editor-tray" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45vh', minHeight: 380, background: '#1c1c1c', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', zIndex: 20, boxShadow: '0 -10px 40px rgba(0,0,0,0.5)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                           <h3 style={{ margin: 0, color: '#fff', fontFamily: 'var(--sans)', fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             {stampEditorTab === 'details' ? 'Details' : stampEditorTab === 'style' ? 'Style' : stampEditorTab === 'share' ? 'Saving Options' : 'Notes'}
                           </h3>
-                          <button onClick={() => setStampEditorTab(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 16 }}>×</button>
+                          <button onClick={() => setStampEditorTab(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>×</button>
                         </div>
 
                         <div className="stamp-editor-tray__scroller" data-native-scroll style={{ flex: 1, overflowY: 'auto' }}>
