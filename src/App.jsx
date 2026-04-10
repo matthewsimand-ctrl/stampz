@@ -388,15 +388,15 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
             <div style={{ position: 'absolute', inset: 0, ...aging.paperOverlay, pointerEvents: 'none', zIndex: 1 }} />
             <div style={{ position: 'absolute', inset: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`, opacity: aging.grainOpacity, mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 1 }} />
             <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)', pointerEvents: 'none', zIndex: 1 }} />
-            <div style={{ position: 'absolute', top: 10, right: 10, color: item.locationTextColor || textColor, fontSize: countryFont, letterSpacing: '0.22em', textTransform: 'uppercase', fontFamily: 'var(--sans)', writingMode: 'vertical-rl', textOrientation: 'mixed', zIndex: 2, textShadow: '0 1px 0 rgba(255,255,255,0.58)', WebkitTextStroke: `0.45px ${item.locationStrokeColor || textStrokeColor}` }}>
+            <div style={{ color: item.locationTextColor || textColor, fontSize: countryFont, letterSpacing: '0.22em', textTransform: 'uppercase', fontFamily: 'var(--sans)', writingMode: 'vertical-rl', textOrientation: 'mixed', zIndex: 2, textShadow: '0 1px 0 rgba(255,255,255,0.58)', WebkitTextStroke: `0.85px ${item.locationStrokeColor || textStrokeColor}` }}>
               {item.location || item.country || item.origin || 'STAMPZ'}
             </div>
           </div>
           <div style={{ position: 'absolute', left: photoInsetX, right: photoInsetX, bottom: 0, height: photoInsetBottom, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, zIndex: 2 }}>
-            <div style={{ color: item.copyrightTextColor || textColor, opacity: 0.76, fontSize: metaFont, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--sans)', whiteSpace: 'nowrap', WebkitTextStroke: `0.35px ${item.copyrightStrokeColor || textStrokeColor}`, transform: 'translateY(-1px)' }}>
+            <div style={{ color: item.copyrightTextColor || textColor, opacity: 0.76, fontSize: metaFont, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--sans)', whiteSpace: 'nowrap', WebkitTextStroke: `0.65px ${item.copyrightStrokeColor || textStrokeColor}`, transform: 'translateY(-1px)' }}>
               {item.copyright || `© ${item.createdAt ? new Date(item.createdAt).getFullYear() : CURRENT_YEAR}`}
             </div>
-            <div style={{ color: item.labelTextColor || textColor, fontSize: labelFont, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)', textShadow: '0 1px 0 rgba(255,255,255,0.6)', textAlign: 'right', WebkitTextStroke: `0.45px ${item.labelStrokeColor || textStrokeColor}`, transform: 'translateY(-1px)' }}>
+            <div style={{ color: item.labelTextColor || textColor, fontSize: labelFont, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)', textShadow: '0 1px 0 rgba(255,255,255,0.6)', textAlign: 'right', WebkitTextStroke: `0.85px ${item.labelStrokeColor || textStrokeColor}`, transform: 'translateY(-1px)' }}>
               {item.label || ''}
             </div>
           </div>
@@ -453,7 +453,7 @@ function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1, setEdit
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? `scale(${0.85 * editorZoom}) translateY(-30vh)` : `scale(${1.35 * editorZoom}) translateY(-10vh)`, padding: '8px 0', touchAction: 'none' }}
+      style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? `scale(${1.25 * editorZoom}) translateY(-30vh)` : `scale(${1.25 * editorZoom}) translateY(-10vh)`, padding: '8px 0', touchAction: 'none' }}
     >
       <StampView item={item} size="xl" />
     </div>
@@ -1966,7 +1966,7 @@ function App() {
       setEditingItemId(null);
       setDraft(null);
       setStep('type');
-      setTab('saved');
+      setTab('feed');
       setShowCreateModal(false);
       setIsSaving(false);
 
