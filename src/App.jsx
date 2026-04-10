@@ -1,4 +1,45 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "./lib/supabase.js";
+
+function dataURLtoBlob(dataurl) {
+  let arr = dataurl.split(","), mime = arr[0].match(/:(.*?);/)[1],
+    bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+}
+
+const dbmapItem = item => ({
+  ...item,
+  id: item.id,
+  type: item.type,
+  image: item.image_url,
+  label: item.label,
+  location: item.location,
+  city: item.city,
+  country: item.country,
+  note: item.note || "",
+  stampColor: item.stamp_color,
+  textColor: item.text_color,
+  textStrokeColor: item.text_stroke_color,
+  locationTextColor: item.location_text_color,
+  locationStrokeColor: item.location_stroke_color,
+  labelTextColor: item.label_text_color,
+  labelStrokeColor: item.label_stroke_color,
+  copyrightTextColor: item.copyright_text_color,
+  copyrightStrokeColor: item.copyright_stroke_color,
+  agingIntensity: item.aging_intensity,
+  collection: item.collection,
+  author: item.profiles?.username || "collector",
+  accentColor: item.profiles?.avatar_color || "#4A322D",
+  locationLat: item.location_lat,
+  locationLng: item.location_lng,
+  locationLabel: item.location_label,
+  gradient: item.gradient,
+  createdAt: item.created_at
+});
+
 
 const STAMP_COLORS = ['#FFFDF8', '#FDE2E4', '#DDEAFB', '#E9E6FF', '#DFF4EE', '#FFF0D2', '#F7D7E8', '#F8ECE6'];
 const STAMP_TEXT_COLORS = ['#FFFFFF', '#4A322D', '#315476', '#8A3D2C', '#5B4F7E', '#476758', '#A95A3B', '#1F3F63', '#8C2146', '#7A680D', '#3A3A5A', '#2E5B4F', '#A24A16'];
@@ -1244,16 +1285,30 @@ function SignInScreen({ onSignIn }) {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const isSignup = mode === 'signup';
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
     const safeEmail = email.trim().toLowerCase();
     if (!safeEmail || !password) return;
-    onSignIn({
-      email: safeEmail,
-      name: safeEmail.split('@')[0],
-    });
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const { data, error } = isSignup
+        ? await supabase.auth.signUp({ email: safeEmail, password, options: { data: { username: safeEmail.split('@')[0] } } })
+        : await supabase.auth.signInWithPassword({ email: safeEmail, password });
+
+      if (error) throw error;
+      if (data.user) {
+        onSignIn(data.user);
+      }
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -1297,6 +1352,7 @@ function SignInScreen({ onSignIn }) {
           <div>
             <p className="auth-panel__label">Account preservation</p>
             <h2>{isSignup ? 'Create account' : 'Welcome back'}</h2>
+            {errorMsg && <p style={{ color: 'var(--accent-red)', fontSize: 13, background: 'var(--surface-color)', padding: 12, borderRadius: 8 }}>{errorMsg}</p>}
           </div>
           <label>
             Email address
@@ -1320,21 +1376,21 @@ function SignInScreen({ onSignIn }) {
               required
             />
           </label>
-          <button type="submit">{isSignup ? 'Create account' : 'Sign in'}</button>
+          <button type="submit" disabled={loading}>{loading ? 'Please wait...' : (isSignup ? 'Create account' : 'Sign in')}</button>
           {!isSignup && (
-            <button type="button" className="auth-link" onClick={() => setMode('signup')}>
+            <button type="button" className="auth-link" onClick={() => setMode('signup')} disabled={loading}>
               Don't have an account already? Create account
             </button>
           )}
           {isSignup && (
-            <button type="button" className="auth-link" onClick={() => setMode('signin')}>
+            <button type="button" className="auth-link" onClick={() => setMode('signin')} disabled={loading}>
               Already have an account? Sign in
             </button>
           )}
           <p className="auth-footnote">
             {isSignup
-              ? 'Create a local Stampz account to preserve your collection on this device.'
-              : 'Sign in with the same email to restore your saved local collection.'}
+              ? 'Create a stampz account to preserve your collection across devices.'
+              : 'Sign in to sync and restore your saved remote collection.'}
           </p>
         </form>
       </section>
@@ -1347,13 +1403,10 @@ function SignInScreen({ onSignIn }) {
 ════════════════════════════════════════════════════════ */
 function App() {
   const [tab, setTab] = useState('map');
-  const [account, setAccount] = useState(() => readStoredProfile());
-  const [myItems, setMyItems] = useState(() => {
-    const savedAccount = readStoredProfile();
-    if (!savedAccount?.email) return [];
-    return readStoredCollection(savedAccount.email);
-  });
-  const [collectionReady, setCollectionReady] = useState(() => Boolean(readStoredProfile()?.email));
+  const [account, setAccount] = useState(null);
+  const [myItems, setMyItems] = useState([]);
+  const [communityItems, setCommunityItems] = useState([]);
+  const [authLoading, setAuthLoading] = useState(true);
   const [step, setStep] = useState('type');
   const [draft, setDraft] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -1444,35 +1497,52 @@ function App() {
   }, [showCreateModal]);
 
   useEffect(() => {
-    if (!account?.email || !collectionReady) return;
-    try {
-      localStorage.setItem(collectionStorageKey(account.email), JSON.stringify(myItems));
-    } catch (error) {
-      console.error('[stampz-storage]', error);
-    }
-  }, [account?.email, collectionReady, myItems]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAccount(session?.user ?? null);
+      if (session?.user) fetchMyItems(session.user.id);
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAccount(session?.user ?? null);
+      if (session?.user) {
+        fetchMyItems(session.user.id);
+      } else {
+        setMyItems([]);
+      }
+    });
+
+    fetchCommunityItems();
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(locationTrackingEnabled));
   }, [locationTrackingEnabled]);
 
-  const handleSignIn = user => {
-    const savedItems = readStoredCollection(user.email);
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(user));
-    setMyItems(Array.isArray(savedItems) ? savedItems : []);
-    setCollectionReady(true);
-    setAccount(user);
+  const fetchMyItems = async (userId) => {
+    const { data } = await supabase.from('stamps').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (data) setMyItems(data.map(dbmapItem));
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem(PROFILE_STORAGE_KEY);
-    localStorage.removeItem(LEGACY_PROFILE_STORAGE_KEY);
+  const fetchCommunityItems = async () => {
+    const { data } = await supabase.from('stamps').select('*, profiles(username, avatar_color)').order('created_at', { ascending: false }).limit(60);
+    if (data) setCommunityItems(data.map(dbmapItem));
+  };
+
+  const handleSignIn = user => {
+    setAccount(user);
+    fetchCommunityItems();
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setAccount(null);
     setTab('map');
     setStep('type');
     setDraft(null);
     setShowCreateModal(false);
-    setCollectionReady(false);
   };
 
   const showToast = (msg, dur = 2400) => { setToast(msg); setTimeout(() => setToast(null), dur); };
@@ -1716,26 +1786,75 @@ function App() {
 
   const [isSaving, setIsSaving] = useState(false);
   const handleSave = async () => {
-    if (isSaving || !draft) return;
+    if (isSaving || !draft || !account) return;
     setIsSaving(true);
     try {
-      // Don't wait more than a moment for location if we're already saving
       const resolvedDraft = await resolveDraftPlace(draft);
-      const nextItem = {
-        ...resolvedDraft,
-        id: editingItemId || genId(),
-        createdAt: resolvedDraft.createdAt || Date.now(),
-        locationLat: resolvedDraft.locationLat ?? currentLocation?.lat ?? null,
-        locationLng: resolvedDraft.locationLng ?? currentLocation?.lng ?? null,
-        locationLabel: resolvedDraft.locationLabel || (currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced'),
+      let imageUrl = resolvedDraft.image;
+
+      if (imageUrl && imageUrl.startsWith('data:')) {
+        const fileExt = imageUrl.split(';')[0].match(/jpeg|png|gif|webp/)?.[0] || 'jpg';
+        const fileName = `${account.id}_${Date.now()}.${fileExt}`;
+        const blob = dataURLtoBlob(imageUrl);
+        const { data: uploadData, error: uploadError } = await supabase.storage.from('stamps').upload(fileName, blob, {
+          contentType: `image/${fileExt}`
+        });
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('stamps').getPublicUrl(fileName);
+        imageUrl = publicUrl;
+      }
+
+      const isUpdate = !!editingItemId && !String(editingItemId).startsWith('item_');
+
+      const payload = {
+        user_id: account.id,
+        type: resolvedDraft.type,
+        image_url: imageUrl,
+        label: resolvedDraft.label || '',
+        location: resolvedDraft.location || '',
+        city: resolvedDraft.city || '',
+        country: resolvedDraft.country || '',
+        note: resolvedDraft.note || '',
+        stamp_color: resolvedDraft.stampColor,
+        text_color: resolvedDraft.textColor,
+        text_stroke_color: resolvedDraft.textStrokeColor,
+        location_text_color: resolvedDraft.locationTextColor,
+        location_stroke_color: resolvedDraft.locationStrokeColor,
+        label_text_color: resolvedDraft.labelTextColor,
+        label_stroke_color: resolvedDraft.labelStrokeColor,
+        copyright_text_color: resolvedDraft.copyrightTextColor,
+        copyright_stroke_color: resolvedDraft.copyrightStrokeColor,
+        aging_intensity: resolvedDraft.agingIntensity,
+        collection: resolvedDraft.collection || 'Destinations',
+        location_lat: resolvedDraft.locationLat ?? currentLocation?.lat ?? null,
+        location_lng: resolvedDraft.locationLng ?? currentLocation?.lng ?? null,
+        location_label: resolvedDraft.locationLabel || (currentLocation ? `${currentLocation.lat.toFixed(2)}, ${currentLocation.lng.toFixed(2)}` : 'Unplaced'),
+        gradient: resolvedDraft.gradient || ''
       };
 
+      let saveResult;
+      let nextItem;
+      if (isUpdate) {
+        saveResult = await supabase.from('stamps').update(payload).eq('id', editingItemId).select('*, profiles(username, avatar_color)').single();
+        if (saveResult.error) throw saveResult.error;
+        nextItem = dbmapItem(saveResult.data);
+      } else {
+        saveResult = await supabase.from('stamps').insert(payload).select('*, profiles(username, avatar_color)').single();
+        if (saveResult.error) throw saveResult.error;
+        nextItem = dbmapItem(saveResult.data);
+      }
+
       setMyItems(items => {
-        if (editingItemId) {
+        if (isUpdate) {
           return items.map(item => item.id === editingItemId ? nextItem : item);
         } else {
           return [nextItem, ...items];
         }
+      });
+
+      setCommunityItems(prev => {
+        if (isUpdate) return prev.map(p => p.id === nextItem.id ? nextItem : p);
+        return [nextItem, ...prev].slice(0, 60);
       });
 
       if (nextItem.locationLat != null && nextItem.locationLng != null) {
@@ -2383,7 +2502,7 @@ function App() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '4px 4px 20px', margin: '0 -4px 18px', scrollbarWidth: 'none' }}>
-                  {[...new Set(COMMUNITY_STAMPS.map(stamp => stamp.author))].map(author => {
+                  {[...new Set(communityItems.map(stamp => stamp.author))].map(author => {
                     const storyProfile = getCommunityProfile(author);
                     return (
                       <button key={author} onClick={() => setViewingProfile(author)} style={{ minWidth: 70, border: 'none', background: 'transparent', cursor: 'pointer', display: 'grid', justifyItems: 'center', gap: 8, color: 'var(--text-h)' }}>
