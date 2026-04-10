@@ -1288,7 +1288,27 @@ function SignInScreen({ onSignIn }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [resetSent, setResetSent] = useState(false);
   const isSignup = mode === 'signup';
+
+  const handleResetPassword = async () => {
+    const safeEmail = email.trim().toLowerCase();
+    if (!safeEmail) {
+      setErrorMsg('Please enter your email address to reset your password.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(safeEmail);
+      if (error) throw error;
+      setResetSent(true);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -1371,12 +1391,20 @@ function SignInScreen({ onSignIn }) {
             onBlur={e => e.target.style.borderColor = '#E5E5E5'}
           />
 
+          {resetSent && <p style={{ margin: 0, color: '#16a34a', fontSize: 13, background: 'rgba(22, 163, 74, 0.1)', padding: '12px', borderRadius: 8, textAlign: 'center' }}>Password reset email sent. Check your inbox.</p>}
+
           <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', marginTop: 12, background: 'linear-gradient(135deg, #ff6b9d, #f5576c)', color: 'white', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245, 87, 108, 0.4)', transition: 'transform 0.1s' }}
             onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
             onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
             onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
             {loading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Sign In')}
           </button>
+
+          {!isSignup && (
+            <button type="button" onClick={handleResetPassword} disabled={loading} style={{ background: 'none', border: 'none', color: '#ff6b9d', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
+              Forgot your password?
+            </button>
+          )}
 
           <button type="button" onClick={() => setMode(isSignup ? 'signin' : 'signup')} disabled={loading} style={{ background: 'none', border: 'none', color: '#666', fontSize: 14, cursor: 'pointer', marginTop: 8, padding: 8, fontFamily: 'var(--sans)' }}>
             {isSignup ? Object.assign(<span>Already have an account? <span style={{ fontWeight: 600, color: '#ff6b9d' }}>Sign in</span></span>)
