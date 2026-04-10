@@ -405,10 +405,12 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
   const endTileX = Math.floor((viewLeft + viewport.width) / TILE_SIZE);
   const startTileY = Math.floor(viewTop / TILE_SIZE);
   const endTileY = Math.floor((viewTop + viewport.height) / TILE_SIZE);
+  const tilesPerAxis = Math.pow(2, mapView.zoom);
   const tiles = [];
 
   for (let tileY = startTileY; tileY <= endTileY; tileY += 1) {
-    const safeTileY = clampTileY(tileY, mapView.zoom);
+    if (tileY < 0 || tileY >= tilesPerAxis) continue;
+    const safeTileY = tileY;
     for (let tileX = startTileX; tileX <= endTileX; tileX += 1) {
       const safeTileX = normalizeTileX(tileX, mapView.zoom);
       tiles.push({
@@ -446,9 +448,22 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
       dragRef.current.centerWorldY - dy,
       mapView.zoom
     );
+
+    // Limit boundaries
+    const worldSize = TILE_SIZE * Math.pow(2, mapView.zoom);
+    const halfH = viewport.height / 2;
+    let finalWorldY;
+    if (worldSize <= viewport.height) {
+      finalWorldY = worldSize / 2;
+    } else {
+      const centerWorld = latLngToWorld(next.lat, next.lng, mapView.zoom);
+      finalWorldY = clamp(centerWorld.y, halfH, worldSize - halfH);
+    }
+    const safeLatLng = worldToLatLng(dragRef.current.centerWorldX - dx, finalWorldY, mapView.zoom);
+
     setMapView(view => ({
       ...view,
-      centerLat: next.lat,
+      centerLat: safeLatLng.lat,
       centerLng: next.lng,
     }));
   };
@@ -517,9 +532,22 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
         dragRef.current.centerWorldY - dy,
         mapView.zoom
       );
+
+      // Limit boundaries
+      const worldSize = TILE_SIZE * Math.pow(2, mapView.zoom);
+      const halfH = viewport.height / 2;
+      let finalWorldY;
+      if (worldSize <= viewport.height) {
+        finalWorldY = worldSize / 2;
+      } else {
+        const centerWorld = latLngToWorld(next.lat, next.lng, mapView.zoom);
+        finalWorldY = clamp(centerWorld.y, halfH, worldSize - halfH);
+      }
+      const safeLatLng = worldToLatLng(dragRef.current.centerWorldX - dx, finalWorldY, mapView.zoom);
+
       setMapView(view => ({
         ...view,
-        centerLat: next.lat,
+        centerLat: safeLatLng.lat,
         centerLng: next.lng,
       }));
     }
@@ -558,7 +586,7 @@ function WorldMap({ items, currentLocation, selectedItemId, onSelectStamp, onReq
     >
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(255,255,255,0.34), rgba(120,126,141,0.08))', pointerEvents: 'none', zIndex: 1 }} />
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle, rgba(182,69,18,0.16) 1px, transparent 1.25px) 0 0 / 22px 22px', opacity: 0.18, pointerEvents: 'none', zIndex: 2 }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none', transform: 'scale(1.02)' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
         {tiles.map(tile => (
           <img
             key={tile.key}
@@ -1643,6 +1671,7 @@ function App() {
     }));
     setShowCamera(false);
     setStep('customize');
+    setShowCreateModal(true);
 
     if (existingLocation) {
       const place = await reverseGeocode(existingLocation);
@@ -1681,9 +1710,6 @@ function App() {
 
   const handleCameraCancel = () => {
     setShowCamera(false);
-    if (!editingItemId && !draft?.image) {
-      setStep('upload');
-    }
   };
 
   const [isSaving, setIsSaving] = useState(false);
@@ -1738,13 +1764,10 @@ function App() {
   const openCreateModal = () => {
     setEditingItemId(null);
     setStampEditorTab('details');
-    // Start with a fresh draft but let user choose type or go straight to camera?
-    // User said "+ button to add a new stamp", so let's default to stamp
     setDraft(createDraft('stamp', currentLocation));
-    setStep('type'); // Show type selection first for variety, or skip?
-    // On second thought, let's go to step 'upload' which has the Camera button
-    setStep('upload');
-    setShowCreateModal(true);
+    setStep('customize');
+    setShowCamera(true);
+    setShowCreateModal(false); // Only show after capture
     if (locationTrackingEnabled && !currentLocation) {
       fetchCurrentLocation({ silent: true, force: true });
     }
@@ -1796,10 +1819,6 @@ function App() {
   const handleCreateBack = () => {
     if (showCamera) {
       setShowCamera(false);
-      if (draft?.image) setStep('customize');
-      else if (draft?.imageRaw && draft?.type === 'stamp') setStep('frame');
-      else if (draft) setStep('upload');
-      else closeCreateModal();
       return;
     }
 
@@ -1808,18 +1827,9 @@ function App() {
         closeCreateModal();
         return;
       }
-      setStep('type');
-      setDraft(null);
-      return;
-    }
-
-    if (step === 'frame') {
-      setStep('upload');
-      return;
-    }
-
-    if (step === 'upload') {
-      setStep('type');
+      // If we're customizing a new capture, back should ideally go back to camera or close.
+      // User says the selection pages should be hidden.
+      closeCreateModal();
       return;
     }
 
@@ -1865,7 +1875,7 @@ function App() {
         <CameraViewfinder type={draft.type} onCapture={handleCameraCapture} onCancel={handleCameraCancel} />
       )}
 
-      {!showCreateModal && (
+      {!showCreateModal && !showCamera && (
         <header className="app-header">
           <h1 className="app-brand-title">Stampz</h1>
         </header>
@@ -1992,7 +2002,7 @@ function App() {
                     </div>
 
                     <div className="stamp-editor-tray">
-                      <div style={{ display: 'flex', gap: 12, padding: '0 4px', marginBottom: 20 }}>
+                      <div style={{ display: 'flex', gap: 12, padding: '0 4px', marginBottom: 20, justifyContent: 'center' }}>
                         {[
                           { id: 'details', label: 'Details' },
                           { id: 'style', label: 'Style' },
@@ -2105,12 +2115,6 @@ function App() {
                                 <span style={{ color: 'var(--accent-red)', fontSize: 15, fontFamily: 'var(--sans)', fontWeight: 700 }}>{draft.agingIntensity ?? 36}%</span>
                               </div>
                               <input type="range" min="0" max="100" step="1" value={draft.agingIntensity ?? 36} onChange={e => setDraft(d => ({ ...d, agingIntensity: Number(e.target.value) }))} style={{ width: '100%', accentColor: 'var(--accent-red)' }} />
-                            </div>
-                            <div>
-                              <p style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 8 }}>Collection</p>
-                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                {COLLECTIONS.map(c => <Pill key={c} label={c} active={draft.collection === c} onClick={() => setDraft(d => ({ ...d, collection: c }))} activeColor="var(--accent-red)" />)}
-                              </div>
                             </div>
                           </div>
                         )}
@@ -2460,7 +2464,7 @@ function App() {
         )}
       </main >
 
-      {!showCreateModal && (
+      {!showCreateModal && !showCamera && (
         <nav className="app-nav" aria-label="Primary">
           <TabButton id="map" icon="⌖" label="World" active={tab === 'map'} onSelect={handleTabSelect} />
           <TabButton id="feed" icon="▤" label="Feed" active={tab === 'feed'} onSelect={handleTabSelect} />
