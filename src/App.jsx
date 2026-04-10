@@ -2081,7 +2081,7 @@ function App() {
 
         {/* ══ CREATE MODAL */}
         {showCreateModal && (
-          <div className="create-modal" role="dialog" aria-modal="true" aria-label="Create a Stampz item" onClick={closeCreateModal}>
+          <div className="create-modal" role="dialog" aria-modal="true" aria-label="Create a Stampz item" onClick={closeCreateModal} style={step === 'customize' && draft?.type === 'stamp' ? { background: '#080808' } : {}}>
             <div
               className={`create-modal__panel${step === 'customize' && draft?.type === 'stamp' ? ' create-modal__panel--editor' : ''}`}
               onClick={e => e.stopPropagation()}
@@ -2091,12 +2091,12 @@ function App() {
                   type="button"
                   className="create-modal__topaction"
                   onClick={handleCreateBack}
-                  style={step === 'customize' && draft?.type === 'stamp' ? { color: 'white', textShadow: '0 2px 8px rgba(0,0,0,0.4)', fontSize: 16 } : {}}
+                  style={step === 'customize' && draft?.type === 'stamp' ? { background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 100, padding: '7px 14px', color: 'white', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 4 } : {}}
                 >
-                  ← Back
+                  {step === 'customize' && draft?.type === 'stamp' ? '✕' : '← Back'}
                 </button>
                 {step === 'customize' && draft?.type === 'stamp' && (
-                  <button onClick={() => { setShowCamera(true); setShowCreateModal(false); }} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: 100, color: 'white', cursor: 'pointer', fontFamily: 'var(--sans)', fontWeight: 600, backdropFilter: 'blur(10px)' }}>
+                  <button onClick={() => { setShowCamera(true); setShowCreateModal(false); }} style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.12)', padding: '7px 14px', borderRadius: 100, color: 'white', cursor: 'pointer', fontFamily: 'var(--sans)', fontWeight: 600, fontSize: 13, backdropFilter: 'blur(10px)' }}>
                     Retake
                   </button>
                 )}
@@ -2109,15 +2109,15 @@ function App() {
                       minHeight: 0,
                       padding: '8px 20px',
                       border: 'none',
-                      borderRadius: 'var(--radius-pill)',
+                      borderRadius: 100,
                       background: isSaving ? 'rgba(255,255,255,0.4)' : '#fff',
-                      color: isSaving ? 'rgba(0,0,0,0.4)' : '#000',
+                      color: '#000',
                       cursor: isSaving ? 'default' : 'pointer',
                       fontFamily: 'var(--sans)',
                       fontSize: 14,
                       fontWeight: 700,
-                      letterSpacing: '0.04em',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      letterSpacing: '0.02em',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                     }}
                   >
                     Next
