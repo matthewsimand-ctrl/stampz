@@ -10,7 +10,7 @@
   --text-muted: #9d8f87;
   --bg: #fdfaf7;
   --bg-soft: #fefdfb;
-  --surface: rgba(255, 252, 248, 0.97);
+  --surface: #fffcf8;
   --surface-strong: #fffefb;
   --surface-tint: #f7f2ed;
   --surface-card: rgba(255, 253, 249, 0.96);
@@ -196,14 +196,24 @@ button:disabled {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: #FDFAF7;
-  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  height: calc(56px + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
-  height: calc(64px + env(safe-area-inset-top));
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 10px rgba(61, 46, 40, 0.04);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Ensure the background covers the very top of the screen */
+.app-header::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: inherit;
 }
 
 .app-brand-title {
@@ -458,10 +468,34 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: calc(var(--space-2) + env(safe-area-inset-top)) var(--space-5) var(--space-2);
+  padding: env(safe-area-inset-top) var(--space-5) 0;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-soft);
-  height: calc(64px + env(safe-area-inset-top));
+  background: var(--surface);
+  height: calc(56px + env(safe-area-inset-top));
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.create-modal__topbar::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: inherit;
+}
+
+/* Editor dark theme for header support */
+.create-modal__panel--editor .create-modal__topbar {
+  background: #080808 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  color: white !important;
+}
+
+.create-modal__panel--editor .create-modal__topaction {
+  color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .create-modal__topaction {
