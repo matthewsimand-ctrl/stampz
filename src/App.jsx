@@ -313,7 +313,7 @@ function ScallopEdges({ inset, marginX, marginY, radius, step, color = 'white' }
 
 /* ── StampView ── */
 function StampView({ item, size = 'md', onClick, showMeta = false }) {
-  const { w, h } = STAMP_SIZES[size];
+  const { w, h, hole, sp } = STAMP_SIZES[size];
   const stampBg = item.stampColor || '#F6DDE2';
   const stampPaper = '#FFFDFC';
   const edgeStroke = 'rgba(188, 172, 172, 0.82)';
@@ -321,8 +321,27 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   const textStrokeColor = item.textStrokeColor || 'rgba(255,252,248,0.92)';
   const aging = getAgingStyle(item.agingIntensity ?? 36);
   const outerRadius = Math.max(12, w * 0.08);
-  const maskId = useMemo(() => `m_${Math.random().toString(36).slice(2, 9)}_${w}`, [w]);
-  const maskImage = useMemo(() => buildStampMask(w, h, Math.max(4.2, w * 0.032), Math.max(8.8, w * 0.064), maskId), [w, h, maskId]);
+  const maskId = useMemo(() => `mask_${Math.random().toString(36).slice(2, 11)}`, []);
+
+  const cutouts = useMemo(() => {
+    let circles = [];
+    const hCount = Math.floor(w / sp);
+    const hSp = w / hCount;
+    for (let i = 0; i <= hCount; i++) {
+      const x = i * hSp;
+      circles.push(<circle key={`hT-${i}`} cx={x} cy={0} r={hole} />);
+      circles.push(<circle key={`hB-${i}`} cx={x} cy={h} r={hole} />);
+    }
+    const vCount = Math.floor(h / sp);
+    const vSp = h / vCount;
+    for (let i = 0; i <= vCount; i++) {
+      const y = i * vSp;
+      circles.push(<circle key={`vL-${i}`} cx={0} cy={y} r={hole} />);
+      circles.push(<circle key={`vR-${i}`} cx={w} cy={y} r={hole} />);
+    }
+    return circles;
+  }, [w, h, hole, sp]);
+
   const photoInsetX = Math.max(15, w * 0.095);
   const photoInsetTop = Math.max(15, w * 0.095);
   const photoInsetBottom = Math.max(38, h * 0.22);
@@ -330,6 +349,7 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   const countryFont = Math.max(8, w * 0.06);
   const labelFont = Math.max(8, w * 0.056);
   const metaFont = Math.max(6, w * 0.038);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
       <div style={{ cursor: onClick ? 'pointer' : 'default', transition: 'transform 0.22s', filter: 'drop-shadow(0 18px 30px rgba(30, 34, 48, 0.16))' }}
@@ -337,9 +357,23 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
         onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
         onClick={onClick}>
         <div style={{ width: w, height: h, position: 'relative', overflow: 'visible' }}>
-          <div style={{ position: 'absolute', inset: 0, background: edgeStroke, borderRadius: outerRadius, WebkitMaskImage: maskImage, maskImage: maskImage, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', filter: 'drop-shadow(0 1px 0 rgba(255,255,255,0.55)) drop-shadow(0 8px 16px rgba(70,52,52,0.12))' }} />
-          <div style={{ position: 'absolute', inset: 1.5, background: stampBg, borderRadius: Math.max(outerRadius - 1, 0), WebkitMaskImage: maskImage, maskImage: maskImage, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat' }} />
-          <div style={{ position: 'absolute', inset: Math.max(6, w * 0.034), background: 'rgba(255,255,255,0.42)', borderRadius: Math.max(outerRadius - 5, 0), WebkitMaskImage: maskImage, maskImage: maskImage, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', opacity: 0.72 }} />
+          {/* True Vector Perforations using SVG Component */}
+          <svg width={w} height={h} style={{ position: 'absolute', top: 0, left: 0, width: w, height: h, overflow: 'visible' }}>
+            <defs>
+              <mask id={maskId}>
+                <rect width={w} height={h} fill="white" rx={outerRadius} />
+                <g fill="black">{cutouts}</g>
+              </mask>
+            </defs>
+            {/* Edge Stroke Layer */}
+            <rect width={w} height={h} fill={edgeStroke} mask={`url(#${maskId})`} />
+            {/* Paper Background Layer (Inset 1.5px for border effect) */}
+            <rect x="1.5" y="1.5" width={w - 3} height={h - 3} fill={stampBg} rx={Math.max(outerRadius - 1, 0)} mask={`url(#${maskId})`} />
+            {/* Inner Glow/Shadow Layer */}
+            <rect x={w * 0.034} y={w * 0.034} width={w - (w * 0.068)} height={h - (w * 0.068)} fill="rgba(255,255,255,0.42)" rx={Math.max(outerRadius - 5, 0)} mask={`url(#${maskId})`} opacity="0.72" />
+          </svg>
+
+          {/* Photo and Text Content */}
           <div style={{ position: 'absolute', left: photoInsetX, right: photoInsetX, top: photoInsetTop, height: imageHeight, background: stampPaper, overflow: 'hidden', boxShadow: `0 0 0 1px ${aging.borderColor}, inset 0 0 0 1px rgba(255,255,255,0.56)` }}>
             {item.image
               ? <img src={item.image} alt={item.label} style={{ width: '100%', aspectRatio: '1 / 1.18', objectFit: 'cover', objectPosition: 'center center', display: 'block', background: stampPaper, filter: aging.imageFilter }} />
@@ -350,7 +384,7 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
             <div style={{ position: 'absolute', inset: 0, ...aging.paperOverlay, pointerEvents: 'none', zIndex: 1 }} />
             <div style={{ position: 'absolute', inset: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`, opacity: aging.grainOpacity, mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 1 }} />
             <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)', pointerEvents: 'none', zIndex: 1 }} />
-            <div style={{ position: 'absolute', top: 10, right: 8, color: item.locationTextColor || textColor, fontSize: countryFont, letterSpacing: '0.22em', textTransform: 'uppercase', fontFamily: 'var(--sans)', writingMode: 'vertical-rl', textOrientation: 'mixed', zIndex: 2, textShadow: '0 1px 0 rgba(255,255,255,0.58)', WebkitTextStroke: `0.45px ${item.locationStrokeColor || textStrokeColor}` }}>
+            <div style={{ position: 'absolute', top: 10, right: 10, color: item.locationTextColor || textColor, fontSize: countryFont, letterSpacing: '0.22em', textTransform: 'uppercase', fontFamily: 'var(--sans)', writingMode: 'vertical-rl', textOrientation: 'mixed', zIndex: 2, textShadow: '0 1px 0 rgba(255,255,255,0.58)', WebkitTextStroke: `0.45px ${item.locationStrokeColor || textStrokeColor}` }}>
               {item.location || item.country || item.origin || 'STAMPZ'}
             </div>
           </div>
@@ -370,9 +404,43 @@ function StampView({ item, size = 'md', onClick, showMeta = false }) {
   );
 }
 
-function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1 }) {
+function EditorStampPreview({ item, onClick, isTrayOpen, editorZoom = 1, setEditorZoom }) {
+  const [prevDist, setPrevDist] = useState(0);
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      setPrevDist(dist);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      if (prevDist > 0) {
+        const delta = dist - prevDist;
+        const zoomDelta = delta * 0.004;
+        setEditorZoom?.(prev => Math.min(2.5, Math.max(0.5, prev + zoomDelta)));
+      }
+      setPrevDist(dist);
+    }
+  };
+
+  const handleTouchEnd = () => setPrevDist(0);
+
   const preview = (
-    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? `scale(${0.85 * editorZoom}) translateY(-30vh)` : `scale(${1.35 * editorZoom}) translateY(-10vh)`, padding: '8px 0' }}>
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)', transform: isTrayOpen ? `scale(${0.85 * editorZoom}) translateY(-30vh)` : `scale(${1.35 * editorZoom}) translateY(-10vh)`, padding: '8px 0', touchAction: 'none' }}
+    >
       <StampView item={item} size="xl" />
     </div>
   );
@@ -2132,10 +2200,10 @@ function App() {
                 draft.type === 'stamp' ? (
                   <div className="stamp-editor-shell" style={{ background: '#080808', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <div className="stamp-editor-preview" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', padding: '40px 16px 80px', paddingTop: 'calc(60px + env(safe-area-inset-top))' }}>
-                      <EditorStampPreview item={draft} isTrayOpen={!!stampEditorTab} editorZoom={editorZoom} onClick={() => setStampEditorTab(null)} />
+                      <EditorStampPreview item={draft} isTrayOpen={!!stampEditorTab} editorZoom={editorZoom} setEditorZoom={setEditorZoom} onClick={() => setStampEditorTab(null)} />
                     </div>
 
-                    <div style={{ position: 'absolute', bottom: stampEditorTab ? '48vh' : 90, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, zIndex: 15, transition: 'bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                    <div style={{ position: 'absolute', bottom: stampEditorTab ? '48vh' : 90, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, zIndex: 15, transition: 'bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1)', opacity: 0, pointerEvents: 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 20, backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
                         <button onClick={() => setEditorZoom(z => Math.max(0.5, z - 0.1))} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 18, padding: '0 4px', cursor: 'pointer', opacity: 0.8 }}>−</button>
                         <input type="range" min="0.5" max="1.5" step="0.05" value={editorZoom} onChange={e => setEditorZoom(Number(e.target.value))} style={{ width: 100, accentColor: '#fff', height: 4, opacity: 0.9 }} />
