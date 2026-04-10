@@ -1359,7 +1359,7 @@ function App() {
   const [showCamera, setShowCamera] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
-  const [stampEditorTab, setStampEditorTab] = useState('details');
+  const [stampEditorTab, setStampEditorTab] = useState(null);
   const [colFilter, setColFilter] = useState('All');
   const [browseFilter, setBrowseFilter] = useState('All');
   const [viewingProfile, setViewingProfile] = useState(null);
@@ -1892,11 +1892,12 @@ function App() {
               className={`create-modal__panel${step === 'customize' && draft?.type === 'stamp' ? ' create-modal__panel--editor' : ''}`}
               onClick={e => e.stopPropagation()}
             >
-              <div className="create-modal__topbar">
+              <div className={`create-modal__topbar ${step === 'customize' && draft?.type === 'stamp' ? 'create-modal__topbar--editor' : ''}`} style={step === 'customize' && draft?.type === 'stamp' ? { background: 'transparent', border: 'none', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } : {}}>
                 <button
                   type="button"
                   className="create-modal__topaction"
                   onClick={handleCreateBack}
+                  style={step === 'customize' && draft?.type === 'stamp' ? { color: 'white', textShadow: '0 2px 8px rgba(0,0,0,0.4)', fontSize: 16 } : {}}
                 >
                   ← Back
                 </button>
@@ -1910,17 +1911,17 @@ function App() {
                       padding: '8px 20px',
                       border: 'none',
                       borderRadius: 'var(--radius-pill)',
-                      background: isSaving ? 'var(--text-muted)' : 'var(--accent-strong)',
-                      color: 'white',
+                      background: isSaving ? 'rgba(255,255,255,0.4)' : '#fff',
+                      color: isSaving ? 'rgba(0,0,0,0.4)' : '#000',
                       cursor: isSaving ? 'default' : 'pointer',
                       fontFamily: 'var(--sans)',
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: 700,
                       letterSpacing: '0.04em',
-                      opacity: isSaving ? 0.7 : 1,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     }}
                   >
-                    {isSaving ? 'Saving...' : 'Done ✓'}
+                    {isSaving ? 'Saving...' : 'Share ✓'}
                   </button>
                 ) : (
                   <span className="create-modal__topspacer" aria-hidden="true" />
@@ -1998,139 +1999,116 @@ function App() {
               {/* Step 4: Customize */}
               {step === 'customize' && draft && (
                 draft.type === 'stamp' ? (
-                  <div className="stamp-editor-shell">
-                    <div className="stamp-editor-preview">
+                  <div className="stamp-editor-shell" style={{ background: '#080808', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                    <div className="stamp-editor-preview" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', padding: '70px 16px 80px' }}>
                       <EditorStampPreview item={draft} onClick={() => setLightbox(draft)} />
                     </div>
 
-                    <div className="stamp-editor-tray">
-                      <div style={{ display: 'flex', gap: 12, padding: '0 4px', marginBottom: 20, justifyContent: 'center' }}>
+                    {!stampEditorTab ? (
+                      <div style={{ position: 'absolute', bottom: 30, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 24, zIndex: 10 }}>
                         {[
-                          { id: 'details', label: 'Details' },
-                          { id: 'style', label: 'Style' },
-                          { id: 'notes', label: 'Notes' },
+                          { id: 'details', label: 'Aa', sub: 'Details' },
+                          { id: 'style', label: '✨', sub: 'Style' },
+                          { id: 'notes', label: '📝', sub: 'Notes' },
                         ].map(tabItem => (
                           <button
                             key={tabItem.id}
                             type="button"
                             onClick={() => setStampEditorTab(tabItem.id)}
                             style={{
-                              padding: '8px 4px',
-                              border: 'none',
-                              background: 'transparent',
-                              color: stampEditorTab === tabItem.id ? 'var(--accent-red)' : 'var(--text-muted)',
-                              fontSize: 12,
-                              fontFamily: 'var(--sans)',
-                              letterSpacing: '0.08em',
-                              textTransform: 'uppercase',
-                              borderBottom: `2px solid ${stampEditorTab === tabItem.id ? 'var(--accent-red)' : 'transparent'}`,
-                              fontWeight: stampEditorTab === tabItem.id ? 700 : 500,
-                              transition: 'all 0.15s',
-                              cursor: 'pointer',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                              background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', outline: 'none'
                             }}
                           >
-                            {tabItem.label}
+                            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'grid', placeItems: 'center', fontSize: 18, border: '1px solid rgba(255,255,255,0.2)' }}>
+                              {tabItem.label}
+                            </div>
+                            <span style={{ fontSize: 10, fontFamily: 'var(--sans)', textTransform: 'uppercase', letterSpacing: '0.05em', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>{tabItem.sub}</span>
                           </button>
                         ))}
                       </div>
+                    ) : (
+                      <div className="stamp-editor-tray" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '65vh', background: '#1c1c1c', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', zIndex: 20, boxShadow: '0 -10px 40px rgba(0,0,0,0.5)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                          <h3 style={{ margin: 0, color: '#fff', fontFamily: 'var(--sans)', fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            {stampEditorTab === 'details' ? 'Details' : stampEditorTab === 'style' ? 'Style' : 'Notes'}
+                          </h3>
+                          <button onClick={() => setStampEditorTab(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 16 }}>×</button>
+                        </div>
 
-                      <div className="stamp-editor-tray__scroller" data-native-scroll>
-                        {stampEditorTab === 'details' && (
-                          <div style={{ display: 'grid', gap: 10 }}>
-                            {/* Color settings integrated inline */}
-                            {/* Stamp Background Color */}
-                            <div style={{ background: 'var(--surface-tint)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', boxShadow: 'var(--shadow-soft)', marginBottom: 8 }}>
-                              <label style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)', display: 'block', marginBottom: 12 }}>Stamp Paper Color</label>
-                              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                                <div style={{ position: 'relative', width: 42, height: 42 }}>
-                                  <input type="color" value={draft.stampColor || '#FFFDF8'} onChange={e => setDraft(d => ({ ...d, stampColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
-                                  <div style={{ width: '100%', height: '100%', borderRadius: 'var(--radius-sm)', background: draft.stampColor || '#FFFDF8', border: '3px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)', pointerEvents: 'none' }} />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <p style={{ margin: 0, fontSize: 13, color: 'var(--text-h)', fontWeight: 600 }}>Background Tone</p>
-                                  <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)' }}>Sets the base color of the stamp paper.</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Stamp Name */}
-                            <div style={{ background: 'var(--surface-tint)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', boxShadow: 'var(--shadow-soft)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <label style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Stamp Name</label>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                                    <input type="color" value={draft.labelTextColor || draft.textColor || '#4A322D'} onChange={e => setDraft(d => ({ ...d, labelTextColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.labelTextColor || draft.textColor || '#4A322D', border: '1.5px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
-                                  </div>
-                                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                                    <input type="color" value={draft.labelStrokeColor || draft.textStrokeColor || '#FFFDFC'} onChange={e => setDraft(d => ({ ...d, labelStrokeColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.labelStrokeColor || draft.textStrokeColor || '#FFFDFC', border: '1.5px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
+                        <div className="stamp-editor-tray__scroller" data-native-scroll style={{ flex: 1, overflowY: 'auto' }}>
+                          {stampEditorTab === 'details' && (
+                            <div style={{ display: 'grid', gap: 14 }}>
+                              <div style={{ background: '#2c2c2c', borderRadius: 12, padding: '14px', border: '1px solid #3c3c3c' }}>
+                                <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Stamp Paper Color</label>
+                                <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 12 }}>
+                                  <div style={{ position: 'relative', width: 42, height: 42 }}>
+                                    <input type="color" value={draft.stampColor || '#FFFDF8'} onChange={e => setDraft(d => ({ ...d, stampColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
+                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.stampColor || '#FFFDF8', border: '2px solid rgba(255,255,255,0.8)' }} />
                                   </div>
                                 </div>
                               </div>
-                              <input value={draft.label} onChange={e => setDraft(d => ({ ...d, label: e.target.value }))} placeholder="e.g. Freedom Flags" style={{ width: '100%', border: 'none', background: 'transparent', padding: 0, fontSize: 16, lineHeight: 1.4, color: 'var(--text-h)', fontFamily: 'var(--sans)', outline: 'none' }} />
-                            </div>
 
-                            {/* Location */}
-                            <div style={{ background: 'var(--surface-tint)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', boxShadow: 'var(--shadow-soft)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <label style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Location</label>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                                    <input type="color" value={draft.locationTextColor || draft.textColor || '#4A322D'} onChange={e => setDraft(d => ({ ...d, locationTextColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.locationTextColor || draft.textColor || '#4A322D', border: '1.5px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
-                                  </div>
-                                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                                    <input type="color" value={draft.locationStrokeColor || draft.textStrokeColor || '#FFFDFC'} onChange={e => setDraft(d => ({ ...d, locationStrokeColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.locationStrokeColor || draft.textStrokeColor || '#FFFDFC', border: '1.5px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
+                              <div style={{ background: '#2c2c2c', borderRadius: 12, padding: '14px', border: '1px solid #3c3c3c' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                  <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Stamp Name</label>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <div style={{ position: 'relative', width: 20, height: 20 }}>
+                                      <input type="color" value={draft.labelTextColor || draft.textColor || '#4A322D'} onChange={e => setDraft(d => ({ ...d, labelTextColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.labelTextColor || draft.textColor || '#4A322D', border: '1px solid rgba(255,255,255,0.4)' }} />
+                                    </div>
                                   </div>
                                 </div>
+                                <input value={draft.label} onChange={e => setDraft(d => ({ ...d, label: e.target.value }))} placeholder="e.g. Freedom Flags" style={{ width: '100%', border: 'none', background: 'transparent', padding: '4px 0', fontSize: 16, color: '#fff', fontFamily: 'var(--sans)', outline: 'none' }} />
                               </div>
-                              <input value={draft.location || ''} onChange={e => setDraft(d => ({ ...d, location: e.target.value.toUpperCase() }))} placeholder="e.g. CANADA" style={{ width: '100%', border: 'none', background: 'transparent', padding: 0, fontSize: 16, lineHeight: 1.4, color: 'var(--text-h)', fontFamily: 'var(--sans)', outline: 'none', textTransform: 'uppercase', letterSpacing: '0.04em' }} />
-                            </div>
 
-                            {/* Copyright */}
-                            <div style={{ background: 'var(--surface-tint)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', boxShadow: 'var(--shadow-soft)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <label style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Copyright</label>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                                    <input type="color" value={draft.copyrightTextColor || draft.textColor || '#4A322D'} onChange={e => setDraft(d => ({ ...d, copyrightTextColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.copyrightTextColor || draft.textColor || '#4A322D', border: '1.5px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
-                                  </div>
-                                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                                    <input type="color" value={draft.copyrightStrokeColor || draft.textStrokeColor || '#FFFDFC'} onChange={e => setDraft(d => ({ ...d, copyrightStrokeColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.copyrightStrokeColor || draft.textStrokeColor || '#FFFDFC', border: '1.5px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' }} />
+                              <div style={{ background: '#2c2c2c', borderRadius: 12, padding: '14px', border: '1px solid #3c3c3c' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                  <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Location</label>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <div style={{ position: 'relative', width: 20, height: 20 }}>
+                                      <input type="color" value={draft.locationTextColor || draft.textColor || '#4A322D'} onChange={e => setDraft(d => ({ ...d, locationTextColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.locationTextColor || draft.textColor || '#4A322D', border: '1px solid rgba(255,255,255,0.4)' }} />
+                                    </div>
                                   </div>
                                 </div>
+                                <input value={draft.location || ''} onChange={e => setDraft(d => ({ ...d, location: e.target.value.toUpperCase() }))} placeholder="e.g. CANADA" style={{ width: '100%', border: 'none', background: 'transparent', padding: '4px 0', fontSize: 16, color: '#fff', fontFamily: 'var(--sans)', outline: 'none', textTransform: 'uppercase', letterSpacing: '0.04em' }} />
                               </div>
-                              <input value={draft.copyright ?? `© ${new Date().getFullYear()}`} onChange={e => setDraft(d => ({ ...d, copyright: e.target.value }))} placeholder={`© ${new Date().getFullYear()}`} style={{ width: '100%', border: 'none', background: 'transparent', padding: 0, fontSize: 16, lineHeight: 1.4, color: 'var(--text-h)', fontFamily: 'var(--sans)', outline: 'none' }} />
-                            </div>
-                          </div>
-                        )}
 
-                        {stampEditorTab === 'style' && (
-                          <div style={{ display: 'grid', gap: 12 }}>
-                            <div style={{ background: 'var(--surface-tint)', borderRadius: 14, padding: '16px 16px 20px', boxShadow: 'var(--shadow-soft)', display: 'grid', gap: 10 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                                <label style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Aging Intensity</label>
-                                <span style={{ color: 'var(--accent-red)', fontSize: 15, fontFamily: 'var(--sans)', fontWeight: 700 }}>{draft.agingIntensity ?? 36}%</span>
+                              <div style={{ background: '#2c2c2c', borderRadius: 12, padding: '14px', border: '1px solid #3c3c3c' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                  <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Copyright</label>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <div style={{ position: 'relative', width: 20, height: 20 }}>
+                                      <input type="color" value={draft.copyrightTextColor || draft.textColor || '#4A322D'} onChange={e => setDraft(d => ({ ...d, copyrightTextColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: draft.copyrightTextColor || draft.textColor || '#4A322D', border: '1px solid rgba(255,255,255,0.4)' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                                <input value={draft.copyright ?? `© ${new Date().getFullYear()}`} onChange={e => setDraft(d => ({ ...d, copyright: e.target.value }))} placeholder={`© ${new Date().getFullYear()}`} style={{ width: '100%', border: 'none', background: 'transparent', padding: '4px 0', fontSize: 16, color: '#fff', fontFamily: 'var(--sans)', outline: 'none' }} />
                               </div>
-                              <input type="range" min="0" max="100" step="1" value={draft.agingIntensity ?? 36} onChange={e => setDraft(d => ({ ...d, agingIntensity: Number(e.target.value) }))} style={{ width: '100%', accentColor: 'var(--accent-red)' }} />
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {stampEditorTab === 'notes' && (
-                          <div style={{ background: 'var(--surface-tint)', borderRadius: 14, padding: '16px 16px 14px', boxShadow: 'var(--shadow-soft)' }}>
-                            <label style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', display: 'block', marginBottom: 10, fontFamily: 'var(--sans)' }}>Description</label>
-                            <textarea value={draft.note || ''} onChange={e => setDraft(d => ({ ...d, note: e.target.value }))} placeholder="Describe the atmosphere..." style={{ width: '100%', minHeight: 120, border: 'none', background: 'transparent', resize: 'none', fontSize: 15, lineHeight: 1.55, color: 'var(--text)', fontFamily: 'var(--sans)', outline: 'none' }} />
-                          </div>
-                        )}
+                          {stampEditorTab === 'style' && (
+                            <div style={{ background: '#2c2c2c', borderRadius: 12, padding: '20px 16px', border: '1px solid #3c3c3c' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.10em', textTransform: 'uppercase', fontFamily: 'var(--sans)' }}>Aging Effect</label>
+                                <span style={{ color: '#fff', fontSize: 14, fontFamily: 'var(--sans)', fontWeight: 700 }}>{draft.agingIntensity ?? 36}%</span>
+                              </div>
+                              <input type="range" min="0" max="100" step="1" value={draft.agingIntensity ?? 36} onChange={e => setDraft(d => ({ ...d, agingIntensity: Number(e.target.value) }))} style={{ width: '100%', accentColor: '#fff', height: 4 }} />
+                            </div>
+                          )}
+
+                          {stampEditorTab === 'notes' && (
+                            <div style={{ background: '#2c2c2c', borderRadius: 12, padding: '16px', border: '1px solid #3c3c3c' }}>
+                              <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.10em', textTransform: 'uppercase', display: 'block', marginBottom: 10, fontFamily: 'var(--sans)' }}>Description / Memory</label>
+                              <textarea value={draft.note || ''} onChange={e => setDraft(d => ({ ...d, note: e.target.value }))} placeholder="Write a memory about this stamp..." style={{ width: '100%', minHeight: 140, border: 'none', background: 'transparent', resize: 'none', fontSize: 15, lineHeight: 1.55, color: '#fff', fontFamily: 'var(--sans)', outline: 'none' }} />
+                            </div>
+                          )}
+                        </div>
                       </div>
-
-                      <button onClick={closeCreateModal} style={{ alignSelf: 'center', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--sans)', letterSpacing: '0.06em', minHeight: 0 }}>Cancel</button>
-                    </div>
+                    )}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'center' }}>
