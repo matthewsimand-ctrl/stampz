@@ -94,6 +94,29 @@ const AUTH_HERO_STAMP = {
   image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
 };
 
+const TAB_META = {
+  feed: {
+    eyebrow: 'Community',
+    title: 'Stampz',
+    subtitle: 'Discover new captures, collectors, and stories from around the world.',
+  },
+  map: {
+    eyebrow: 'Atlas',
+    title: 'Pinned Places',
+    subtitle: 'Track your captures on the map and keep unplaced memories in view.',
+  },
+  saved: {
+    eyebrow: 'Collection',
+    title: 'Saved Stampz',
+    subtitle: 'Your archive stays organized, editable, and ready to revisit.',
+  },
+  settings: {
+    eyebrow: 'Profile',
+    title: 'Account & Preferences',
+    subtitle: 'Manage your identity, capture flow, and location behavior in one place.',
+  },
+};
+
 let _n = 0;
 const genId = () => `item_${Date.now()}_${_n++}`;
 
@@ -1383,13 +1406,14 @@ function StampImageFramer({ image, onApply, onBack }) {
 function TabButton({ id, icon, label, active, onSelect, isCenter }) {
   return (
     <button
+      type="button"
       onClick={() => onSelect(id)}
-      className={`${active ? 'is-active' : ''} ${isCenter ? 'nav-center-action' : ''}`}
+      className={`tab-button ${active ? 'is-active' : ''} ${isCenter ? 'nav-center-action' : ''}`}
       aria-label={label}
       title={label}
     >
-      <span>{icon}</span>
-      {!isCenter && label}
+      <span className="tab-button__icon" aria-hidden="true">{icon}</span>
+      {!isCenter && <span className="tab-button__label">{label}</span>}
     </button>
   );
 }
@@ -1451,42 +1475,29 @@ function SignInScreen({ onSignIn }) {
   };
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '40px 24px',
-      background: 'linear-gradient(135deg, #1aa3ff, #ff6b9d, #ffd200)'
-    }}>
-      <div style={{ maxWidth: 420, width: '100%', display: 'flex', flexDirection: 'column', gap: 32, alignItems: 'center' }}>
-
-        {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <img src="/logo.png" alt="" style={{ width: 44, height: 44, objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' }} />
-          <h1 style={{ fontFamily: 'var(--heading)', fontSize: 44, color: 'white', margin: 0, letterSpacing: '-0.02em', textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>Stampz</h1>
-        </div>
-
-        {/* Info */}
-        <div style={{ textAlign: 'center', color: 'white', textShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <p style={{ margin: 0, fontSize: 18, fontWeight: 500, lineHeight: 1.5, fontFamily: 'var(--sans)' }}>
-            Turn your photos into travel stamps.<br />Pin them to the map and build your archive.
+    <main className="auth-shell">
+      <div className="auth-shell__content">
+        <div className="auth-shell__hero">
+          <div className="auth-shell__brand">
+            <span className="auth-shell__brand-mark">
+              <img src="/logo.png" alt="" />
+            </span>
+            <h1 className="auth-shell__heading">Stampz</h1>
+          </div>
+          <p className="auth-shell__copy">
+            Turn photos into keepsake stamps, pin them to your map, and keep every trip in one calm, collectible archive.
           </p>
+          <div className="auth-shell__stamp" aria-hidden="true">
+            <StampView item={AUTH_HERO_STAMP} size="lg" />
+          </div>
         </div>
 
-        {/* Hero Stamp Example */}
-        <div style={{ transform: 'scale(0.85) rotate(-4deg)', transition: 'transform 0.4s', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))', margin: '-10px 0' }}>
-          <StampView item={AUTH_HERO_STAMP} size="lg" />
-        </div>
-
-        {/* Form Card */}
-        <form onSubmit={handleSubmit} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.96)', padding: '32px 24px', borderRadius: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ textAlign: 'center', marginBottom: 8 }}>
-            <h2 style={{ margin: 0, fontFamily: 'var(--heading)', fontSize: 26, color: '#222' }}>{isSignup ? 'Create Account' : 'Welcome Back'}</h2>
+        <form onSubmit={handleSubmit} className="auth-card">
+          <div style={{ textAlign: 'center' }}>
+            <h2 className="auth-card__title">{isSignup ? 'Create Account' : 'Welcome Back'}</h2>
           </div>
 
-          {errorMsg && <p style={{ margin: 0, color: 'var(--accent-red)', fontSize: 13, background: 'rgba(255,0,0,0.05)', padding: '12px', borderRadius: 8, textAlign: 'center' }}>{errorMsg}</p>}
+          {errorMsg && <p className="auth-card__message auth-card__message--error">{errorMsg}</p>}
 
           <input
             value={email}
@@ -1494,9 +1505,9 @@ function SignInScreen({ onSignIn }) {
             placeholder="Email address"
             type="email"
             required
-            style={{ width: '100%', padding: '16px', fontSize: 16, border: '1.5px solid #E5E5E5', borderRadius: 12, outline: 'none', transition: 'border-color 0.2s', fontFamily: 'var(--sans)' }}
-            onFocus={e => e.target.style.borderColor = '#ff6b9d'}
-            onBlur={e => e.target.style.borderColor = '#E5E5E5'}
+            className="auth-input"
+            autoComplete="email"
+            name="email"
           />
           <input
             value={password}
@@ -1504,29 +1515,27 @@ function SignInScreen({ onSignIn }) {
             placeholder="Password"
             type="password"
             required
-            style={{ width: '100%', padding: '16px', fontSize: 16, border: '1.5px solid #E5E5E5', borderRadius: 12, outline: 'none', transition: 'border-color 0.2s', fontFamily: 'var(--sans)' }}
-            onFocus={e => e.target.style.borderColor = '#ff6b9d'}
-            onBlur={e => e.target.style.borderColor = '#E5E5E5'}
+            className="auth-input"
+            autoComplete={isSignup ? 'new-password' : 'current-password'}
+            name="password"
           />
 
-          {resetSent && <p style={{ margin: 0, color: '#16a34a', fontSize: 13, background: 'rgba(22, 163, 74, 0.1)', padding: '12px', borderRadius: 8, textAlign: 'center' }}>Password reset email sent. Check your inbox.</p>}
+          {resetSent && <p className="auth-card__message auth-card__message--success">Password reset email sent. Check your inbox.</p>}
 
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', marginTop: 12, background: 'linear-gradient(135deg, #ff6b9d, #f5576c)', color: 'white', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245, 87, 108, 0.4)', transition: 'transform 0.1s' }}
-            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-            {loading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Sign In')}
+          <button type="submit" disabled={loading} className="auth-submit">
+            {loading ? 'Please wait…' : (isSignup ? 'Create Account' : 'Sign In')}
           </button>
 
           {!isSignup && (
-            <button type="button" onClick={handleResetPassword} disabled={loading} style={{ background: 'none', border: 'none', color: '#ff6b9d', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
+            <button type="button" onClick={handleResetPassword} disabled={loading} className="auth-link">
               Forgot your password?
             </button>
           )}
 
-          <button type="button" onClick={() => setMode(isSignup ? 'signin' : 'signup')} disabled={loading} style={{ background: 'none', border: 'none', color: '#666', fontSize: 14, cursor: 'pointer', marginTop: 8, padding: 8, fontFamily: 'var(--sans)' }}>
-            {isSignup ? Object.assign(<span>Already have an account? <span style={{ fontWeight: 600, color: '#ff6b9d' }}>Sign in</span></span>)
-              : Object.assign(<span>Don't have an account? <span style={{ fontWeight: 600, color: '#ff6b9d' }}>Create one</span></span>)}
+          <button type="button" onClick={() => setMode(isSignup ? 'signin' : 'signup')} disabled={loading} className="auth-link auth-link--muted">
+            {isSignup
+              ? <span>Already have an account? <span style={{ fontWeight: 700, color: 'var(--accent-red)' }}>Sign in</span></span>
+              : <span>Don&apos;t have an account? <span style={{ fontWeight: 700, color: 'var(--accent-red)' }}>Create one</span></span>}
           </button>
         </form>
       </div>
@@ -1587,13 +1596,15 @@ function App() {
   const [selectedMapItemId, setSelectedMapItemId] = useState(null);
   const [mapFocusSignal, setMapFocusSignal] = useState(0);
   const [mapSubView, setMapSubView] = useState('map');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const activeTabMeta = TAB_META[tab] || TAB_META.feed;
   const fileRef = useRef();
   const debugScrollRef = useRef(null);
   const placeLookupRef = useRef('');
 
   useEffect(() => {
     const el = document.createElement('style');
-    el.textContent = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');`;
+    el.textContent = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;700;800&display=swap');`;
     document.head.appendChild(el);
     return () => document.head.removeChild(el);
   }, []);
@@ -2020,18 +2031,11 @@ function App() {
       setEditingItemId(null);
       setDraft(null);
       setStep('type');
-      setTab('feed');
       setShowCreateModal(false);
       setStampEditorTab(null);
       setIsSaving(false);
-
-      showToast(
-        editingItemId
-          ? (nextItem.type === 'stamp' ? '✉️ Stamp updated!' : '✉ Postcard updated!')
-          : nextItem.type === 'stamp'
-            ? (nextItem.locationLat != null ? '✉️ Stamp pinned to your map!' : '✉️ Stamp saved to your archive!')
-            : '✉ Postcard saved!'
-      );
+      setShowSuccess(true);
+      setTab('feed');
     } catch (err) {
       console.error('handleSave error:', err);
       setIsSaving(false);
@@ -2165,7 +2169,11 @@ function App() {
 
       {!showCreateModal && !showCamera && (
         <header className="app-header">
-          <h1 className="app-brand-title">Stampz</h1>
+          <div className="app-header__content">
+            <p className="app-header__eyebrow">{activeTabMeta.eyebrow}</p>
+            <h1 className="app-brand-title">{activeTabMeta.title}</h1>
+            <p className="app-header__subtitle">{activeTabMeta.subtitle}</p>
+          </div>
         </header>
       )}
 
@@ -2561,44 +2569,56 @@ function App() {
           </div>
         )}
 
-        {/* ══ MAP VIEW (Map) */}
         {tab === 'map' && (
           <div style={{ maxWidth: 'var(--desktop-max)', margin: '0 auto' }}>
-            <div style={{ position: 'relative', width: '100%', background: 'var(--surface-tint)', overflow: 'hidden' }}>
-              <WorldMap
-                items={savedStampItems}
-                currentLocation={currentLocation}
-                selectedItemId={selectedMapItem?.id}
-                onSelectStamp={item => {
-                  setSelectedMapItemId(item.id);
-                  setLightbox(item);
-                }}
-                onRequestLocation={requestLocation}
-                focusSignal={mapFocusSignal}
-              />
-              <button
-                onClick={() => requestLocation()}
-                style={{ position: 'absolute', right: 16, top: 16, zIndex: 10, width: 44, height: 44, borderRadius: '50%', background: 'white', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)', color: 'var(--accent-strong)' }}
-                aria-label="Recenter"
-              >
-                <span style={{ fontSize: 20 }}>📍</span>
-              </button>
-
-              <div style={{ position: 'absolute', right: 16, bottom: 16, zIndex: 10, display: 'flex', gap: 8 }}>
-                <button onClick={() => setMapSubView('map')} style={{ padding: '8px 16px', background: mapSubView === 'map' ? 'var(--accent-strong)' : 'rgba(255,255,255,0.9)', color: mapSubView === 'map' ? 'white' : 'var(--text-h)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--shadow-soft)' }}>Map</button>
-                <button onClick={() => setMapSubView('list')} style={{ padding: '8px 16px', background: mapSubView === 'list' ? 'var(--accent-strong)' : 'rgba(255,255,255,0.9)', color: mapSubView === 'list' ? 'white' : 'var(--text-h)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--shadow-soft)' }}>List</button>
-              </div>
-
-              <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 10, background: 'rgba(255,255,255,0.94)', padding: '10px 16px', borderRadius: 14, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-soft)' }}>
-                <span style={{ display: 'flex', gap: 3 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-red)' }} />
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-strong)' }} />
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-h)', letterSpacing: '0.05em' }}>{placedMine.length} Pinned</span>
+            {/* View Switcher Header */}
+            <div style={{ padding: '12px 16px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ background: 'var(--surface-tint)', padding: 4, borderRadius: 14, display: 'flex', gap: 4, border: '1px solid var(--border)' }}>
+                <button
+                  onClick={() => setMapSubView('map')}
+                  style={{ minHeight: 0, padding: '6px 20px', background: mapSubView === 'map' ? 'var(--surface-strong)' : 'transparent', color: mapSubView === 'map' ? 'var(--accent-strong)' : 'var(--text-muted)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: mapSubView === 'map' ? 800 : 500, cursor: 'pointer', boxShadow: mapSubView === 'map' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s' }}
+                >
+                  Map
+                </button>
+                <button
+                  onClick={() => setMapSubView('list')}
+                  style={{ minHeight: 0, padding: '6px 20px', background: mapSubView === 'list' ? 'var(--surface-strong)' : 'transparent', color: mapSubView === 'list' ? 'var(--accent-strong)' : 'var(--text-muted)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: mapSubView === 'list' ? 800 : 500, cursor: 'pointer', boxShadow: mapSubView === 'list' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s' }}
+                >
+                  List
+                </button>
               </div>
             </div>
 
-            {mapSubView === 'list' && (
+            {mapSubView === 'map' ? (
+              <div style={{ position: 'relative', width: '100%', height: 'calc(100dvh - 210px)', minHeight: 400, background: 'var(--surface-tint)', overflow: 'hidden' }}>
+                <WorldMap
+                  items={savedStampItems}
+                  currentLocation={currentLocation}
+                  selectedItemId={selectedMapItemId}
+                  onSelectStamp={item => {
+                    setSelectedMapItemId(item.id);
+                    setLightbox(item);
+                  }}
+                  onRequestLocation={requestLocation}
+                  focusSignal={mapFocusSignal}
+                />
+                <button
+                  onClick={() => requestLocation()}
+                  style={{ position: 'absolute', right: 16, top: 16, zIndex: 10, width: 44, height: 44, borderRadius: '50%', background: 'white', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)', color: 'var(--accent-strong)' }}
+                  aria-label="Recenter"
+                >
+                  <span style={{ fontSize: 20 }}>📍</span>
+                </button>
+
+                <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 10, background: 'rgba(255,255,255,0.94)', padding: '10px 16px', borderRadius: 14, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-soft)', pointerEvents: 'none' }}>
+                  <span style={{ display: 'flex', gap: 3 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-red)' }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-strong)' }} />
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-h)', letterSpacing: '0.05em' }}>{placedMine.length} Pinned</span>
+                </div>
+              </div>
+            ) : (
               <div style={{ padding: '24px 16px' }}>
                 {(() => {
                   const grouped = placedMine.reduce((acc, item) => {
@@ -2610,19 +2630,21 @@ function App() {
                   const sortedLocations = Object.keys(grouped).sort();
 
                   if (sortedLocations.length === 0) {
-                    return <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>No pinned stamps yet.</div>;
+                    return (
+                      <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--surface-tint)', borderRadius: 20 }}>
+                        <p style={{ margin: 0, fontSize: 16, color: 'var(--text-muted)', fontFamily: 'var(--heading)', fontStyle: 'italic' }}>No pinned stamps yet.</p>
+                        <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>Pins will appear here once you capture stamps with location enabled.</p>
+                      </div>
+                    );
                   }
 
                   return sortedLocations.map(loc => (
-                    <div key={loc} style={{ marginBottom: 32 }}>
-                      <h3 style={{ fontFamily: 'var(--heading)', fontSize: 20, color: 'var(--text-h)', marginBottom: 16, borderLeft: '3px solid var(--accent-red)', paddingLeft: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{loc}</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
+                    <div key={loc} style={{ marginBottom: 40 }}>
+                      <h3 style={{ fontFamily: 'var(--heading)', fontSize: 22, color: 'var(--text-h)', marginBottom: 20, borderLeft: '4px solid var(--accent-red)', paddingLeft: 16, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{loc}</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 24 }}>
                         {grouped[loc].map(stamp => (
-                          <div key={stamp.id} onClick={() => setLightbox(stamp)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', aspectRatio: '1', background: 'var(--surface-tint)' }}>
-                              <img src={stamp.image} alt={stamp.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </div>
-                            <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-h)', textAlign: 'center' }}>{stamp.label}</p>
+                          <div key={stamp.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <StampView item={stamp} size="sm" onClick={() => setLightbox(stamp)} />
                           </div>
                         ))}
                       </div>
@@ -2632,11 +2654,7 @@ function App() {
               </div>
             )}
 
-            <div style={{ padding: '0px' }}>
-              {/* Text content removed as requested */}
-            </div>
-
-            {unplacedMine.length > 0 && (
+            {unplacedMine.length > 0 && mapSubView === 'map' && (
               <div style={{ margin: '16px 16px 24px', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-card)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ fontSize: 24 }}>📍</div>
                 <div>
@@ -2677,12 +2695,7 @@ function App() {
             </section>
 
             <section>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 18 }}>
-                <h3 style={{ margin: 0, fontFamily: 'var(--heading)', color: 'var(--text-h)', fontSize: 22 }}>Your Archive</h3>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {['All', ...COLLECTIONS].map(c => <Pill key={c} label={c} active={colFilter === c} onClick={() => setColFilter(c)} activeColor="var(--accent-red)" />)}
-                </div>
-              </div>
+              <div style={{ paddingBottom: 12 }} />
 
               {filteredMine.length === 0 ? (
                 <div style={{ background: 'var(--surface-strong)', borderRadius: 'var(--radius-card)', padding: '60px 24px', textAlign: 'center', border: '1px solid var(--border)' }}>
@@ -2692,17 +2705,21 @@ function App() {
                   <button onClick={openCreateModal} style={{ padding: '12px 28px', background: 'var(--accent-red)', color: 'white', border: 'none', borderRadius: 'var(--radius-pill)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--sans)' }}>Start Capturing</button>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 32, padding: '0 8px' }}>
                   {filteredMine.map(item => (
-                    <button key={item.id} onClick={() => setLightbox(item)} style={{ background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: '16px 12px', cursor: 'pointer', textAlign: 'left', boxShadow: 'var(--shadow-soft)', display: 'grid', gap: 12 }}>
-                      <div style={{ display: 'grid', placeItems: 'center', minHeight: 140 }}>
-                        {item.type === 'stamp' ? <StampView item={item} size="sm" /> : <PostcardView item={item} scale={0.34} />}
-                      </div>
-                      <div>
-                        <p style={{ margin: '0 0 4px', color: 'var(--text-muted)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.locationLabel || item.collection}</p>
-                        <p style={{ margin: 0, color: 'var(--text-h)', fontFamily: 'var(--heading)', fontSize: 16, lineHeight: 1.2 }}>{item.label || item.destination || 'Saved stamp'}</p>
-                      </div>
-                    </button>
+                    <div key={item.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      {item.type === 'stamp' ? (
+                        <StampView item={item} size="md" onClick={() => setLightbox(item)} />
+                      ) : (
+                        <button onClick={() => setLightbox(item)} style={{ background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-card)', padding: '16px 12px', cursor: 'pointer', textAlign: 'left', boxShadow: 'var(--shadow-soft)', display: 'grid', gap: 12 }}>
+                          <PostcardView item={item} scale={0.4} />
+                          <div>
+                            <p style={{ margin: '0 0 4px', color: 'var(--text-muted)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.locationLabel || item.collection}</p>
+                            <p style={{ margin: 0, color: 'var(--text-h)', fontFamily: 'var(--heading)', fontSize: 16, lineHeight: 1.2 }}>{item.label || item.destination || 'Saved postcard'}</p>
+                          </div>
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
@@ -2853,30 +2870,40 @@ function App() {
         )
       }
 
-      <style>{`
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
-        .app-shell { position: relative; width: 100%; min-height: 100vh; overflow-x: hidden; background: var(--bg); }
-        .app-header { display: flex; align-items: center; justify-content: center; height: calc(64px + env(safe-area-inset-top)); position: sticky; top: 0; background: rgba(253, 248, 244, 0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); z-index: 1000; padding: env(safe-area-inset-top) 16px 0; }
-        .app-brand-title { margin: 0; font-family: var(--heading); font-size: 26px; color: var(--text-h); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
-        .header-create-button { position: absolute; left: 16px; top: calc(env(safe-area-inset-top) + 16px); width: 32px; height: 32px; borderRadius: 50%; background: var(--accent-red); color: white; border: none; display: grid; place-items: center; cursor: pointer; boxShadow: 0 4px 12px rgba(192,82,48,0.22); transition: all 0.2s; }
-        .app-main { padding-bottom: 110px; }
-        .app-nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(74px + env(safe-area-inset-bottom)); background: rgba(253, 248, 244, 0.94); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; padding: 0 12px env(safe-area-inset-bottom); z-index: 1000; }
-        @media (min-width: 1024px) {
-          .app-main { width: 100%; max-width: none; margin: 0; }
-        }
-        .create-modal { position: fixed; inset: 0; background: rgba(20,16,14,0.36); backdrop-filter: blur(8px); display: flex; flex-direction: column; z-index: 2000; animation: fadeIn 0.2s ease-out; }
-        .create-modal__panel { background: var(--bg); width: 100%; max-width: 680px; margin: 0 auto; height: 100%; padding: 20px 16px; position: relative; overflow-y: auto; }
-        .create-modal__panel--editor { width: 100%; height: calc(100% - 40px) !important; margin-top: auto; border-radius: 32px 32px 0 0; display: flex !important; flex-direction: column !important; padding: 0 !important; background: var(--bg); overflow: hidden; max-width: 440px; }
-        .create-modal__topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--bg); z-index: 10; height: 60px; }
-        .create-modal__topaction { background: none; border: none; color: var(--text-muted); cursor: pointer; fontSize: 13; fontFamily: var(--sans); letterSpacing: '0.04em'; fontWeight: 600; padding: 0; minHeight: 0; }
-        .stamp-editor-shell { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .stamp-editor-preview { padding: 40px 16px; background: var(--surface-tint); display: grid; place-items: center; border-bottom: 1px solid var(--border); }
-        .stamp-editor-tray { flex: 1; display: flex; flex-direction: column; padding: 20px 24px 44px; background: var(--bg); min-height: 0; overflow: hidden; }
-        .stamp-editor-tray__scroller { flex: 1; overflow-y: auto; padding-right: 4px; padding-bottom: 40px; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-      `}</style>
-    </div>
+      {showSuccess && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(255,255,255,0.98)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24, animation: 'successFadeIn 0.4s ease-out fill-both' }}>
+          <div style={{ position: 'relative', marginBottom: 32, animation: 'stampPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both' }}>
+            <div style={{ fontSize: 80, transform: 'rotate(-12deg)' }}>📮</div>
+            <div style={{ position: 'absolute', inset: -20, borderRadius: '50%', border: '2px dashed var(--accent-red)', opacity: 0.3, animation: 'spin 10s linear infinite' }} />
+          </div>
+          <h2 style={{ fontFamily: 'var(--heading)', fontSize: 32, color: 'var(--text-h)', margin: '0 0 12px', animation: 'floatUp 0.6s ease-out 0.4s both' }}>Captured ✧</h2>
+          <p style={{ maxWidth: 280, color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.6, margin: '0 0 40px', animation: 'floatUp 0.6s ease-out 0.5s both' }}>
+            Your memory has been safely catalogued in your global archive.
+          </p>
+          <button
+            onClick={() => setShowSuccess(false)}
+            style={{ padding: '16px 40px', background: 'var(--text-h)', color: 'white', border: 'none', borderRadius: 'var(--radius-pill)', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', animation: 'floatUp 0.6s ease-out 0.6s both' }}
+          >
+            Continue Journey
+          </button>
+
+          <style>{`
+            @keyframes successFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes stampPop { 
+              0% { transform: scale(0.5) rotate(0deg); opacity: 0; }
+              60% { transform: scale(1.1) rotate(-15deg); }
+              100% { transform: scale(1) rotate(-12deg); opacity: 1; }
+            }
+            @keyframes floatUp {
+              from { transform: translateY(20px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          `}</style>
+        </div>
+      )}
+
+    </div >
   );
 }
 
